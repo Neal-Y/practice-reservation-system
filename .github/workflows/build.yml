@@ -50,3 +50,8 @@ jobs:
         run: cargo clippy --all-targets --all-features --tests --benches -- -D warnings
       - name: Execute rust tests
         run: cargo nextest run --all-features
+
+
+# GitHub Action是一種CI/CD(持續整合/持續部署)的工具
+# 例如可以讓每一次的提交新的代碼時，GitHub會自動執行一些你在YML檔裡定義的動作，如建立、測試、打包、發布或部署一個Web專案。
+# 只要放到.github/workflows底下。
