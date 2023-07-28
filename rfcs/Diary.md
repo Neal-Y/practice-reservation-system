@@ -13,9 +13,13 @@ to adopt the professional habit of an engineer using English for documentation, 
 
 ## 07/26
 
+### Title: Intro With Pre-work
+
 it's start from I want to practice the reservation system and it can be used by a number of type of booking systems, Today I learned how to pre-prepared settings, for example, I could have .**github/workflow/build.yml** that automatically triggers the Continuous Integration (CI) process whenever I push or pull code. Also learned how to set up the pre-commit, it's a great way to run a bunch of commands when u type "git commit -a", that means I can write some scripts like **cargo check**, **cargo deny**, **cargo nextest(further test)** and run all of these at the same time.
 
 ## 07/27
+
+## Title: Core Logic
 
 Today, I am in the process of developing a concurrent reservation system, where a primary challenge is conflict avoidance. Initially, I considered resolving this issue at the application level by comparing the time slots in the database with those selected by the user to ensure availability. However, this approach has a significant drawback: if User A is contemplating a reservation for a particular time slot, User B might secure that slot first, preventing A from booking.
 
@@ -27,3 +31,13 @@ Consequently, I am contemplating utilizing PostgreSQL's EXCLUDE constraints as a
 SELECT int4range(10,20) && int4range(1, 9);
 ```
 **that return false, cuz that isn't overlapping**
+
+## 07/28
+
+### Title: Database Schema Intro
+
+introducing the database "schema" is kind of like C/C++ "namespace" which means that can let all of set up packaged as a one object, make all items better manageable.
+
+why I need to use "gist search" ? The main reason for this choice is that it allows the 'resource_id' to be compared while also executing commands to determine overlap. In other words, it gives me the capability to use **more than one command at the same time**, which is why I chose to use the GiST (Generalized Search Tree) approach. also we created a "reservation_changes" table which means when we have any changes and the trigger will save the change's details insert into the database.
+
+Finally, we implemented a trigger function in PostgreSQL, tasked with logging CRUD operations to the 'reservation_changes' table. However, we must remain mindful of performance implications. High concurrency, brought on by a multitude of simultaneous connections, requires us to ensure that system stability isn't compromised by this logging process."
