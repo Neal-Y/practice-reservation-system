@@ -198,11 +198,11 @@ TBD
 
 ## Drawbacks
 
-TBD
+N/A
 
 ## Rationale and alternatives
 
-TBD
+N/A
 
 ## Prior art
 
