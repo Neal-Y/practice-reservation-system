@@ -41,3 +41,9 @@ introducing the database "schema" is kind of like C/C++ "namespace" which means 
 why I need to use "gist search" ? The main reason for this choice is that it allows the 'resource_id' to be compared while also executing commands to determine overlap. In other words, it gives me the capability to use **more than one command at the same time**, which is why I chose to use the GiST (Generalized Search Tree) approach. also we created a "reservation_changes" table which means when we have any changes and the trigger will save the change's details insert into the database.
 
 Finally, we implemented a trigger function in PostgreSQL, tasked with logging CRUD operations to the 'reservation_changes' table. However, we must remain mindful of performance implications. High concurrency, brought on by a multitude of simultaneous connections, requires us to ensure that system stability isn't compromised by this logging process."
+
+## 07/29
+
+### Title: Start To Code
+
+It's been a long time, finally I code some smell things that use tonic and gRPC, I use tonic-build crate in the build.rs file which can build the reservation.proto and then BOOM we have reservation.rs in the pb dir that is cuz it can converted protobuf into rs, it's same concept as "SCHEMA", also I learned that "tokei" which is a counting line of code application, that's it, it's wonderful day again. by the way, I'm traveling so maybe not to detail but I do my best : ）.
