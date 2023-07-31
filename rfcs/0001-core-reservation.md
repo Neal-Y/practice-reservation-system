@@ -135,7 +135,7 @@ CREATE TYPE rsvp.reservation_status AS ENUM ('unknown', 'pending', 'confirmed', 
 CREATE TYPE rsvp.reservation_update_type AS ENUM ('unknown', 'create', 'update', 'delete');
 
 CREATE TABLE rsvp.reservations (
-    id uuid NOT NULL DEFAULT uuid_generate_v4(),
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
     user_id VARCHAR(64) NOT NULL,
     status rsvp.reservation_status NOT NULL DEFAULT 'pending',
 
@@ -151,11 +151,11 @@ CREATE TABLE rsvp.reservations (
 CREATE INDEX reservations_resource_id_idx ON rsvp.reservations (resource_id);
 CREATE INDEX reservations_user_id_idx ON rsvp.reservations (user_id);
 
--- if user_id is null, find all reservations within during for the resource
--- if resource_id is null, find all reservations within during for the user
--- if both are null, find all reservations within during
--- if both set, find all reservations within during for the resource and user
-CREATE OR REPLACE FUNCTION rsvp.query(uid text, rid text, during: TSTZRANGE) RETURNS TABLE rsvp.reservations AS $$ $$ LANGUAGE plpgsql;
+-- 如果 uid 和 rid 都是 null，那麼函數將返回在指定時間範圍內的所有預約。
+-- 如果只有 uid 是 null，那麼函數將返回指定資源在指定時間範圍內的所有預約。
+-- 如果只有 rid 是 null，那麼函數將返回指定用戶在指定時間範圍內的所有預約。
+-- 如果 uid 和 rid 都不是 null，那麼函數將返回指定用戶在指定資源和時間範圍內的所有預約。
+CREATE OR REPLACE FUNCTION rsvp.query(uid text, rid text, during TSTZRANGE) RETURNS TABLE (LIKE rsvp.reservations) AS $$ $$ LANGUAGE plpgsql;
 
 -- 以防萬一說一下，這是一個函數我們可以在資料庫端寫上述的需求，也可以在資料庫端寫這樣的需求，在這邊寫就是會比較高效一點，但我還是保留。
 
@@ -163,7 +163,7 @@ CREATE OR REPLACE FUNCTION rsvp.query(uid text, rid text, during: TSTZRANGE) RET
 CREATE TABLE rsvp.reservation_changes (
     id SERIAL NOT NULL,
     reservation_id uuid NOT NULL,
-    op rsvp.reservation_update_type NOT NULL,
+    op rsvp.reservation_update_type NOT NULL
 );
 
 -- trigger for add/update/delete a reservation

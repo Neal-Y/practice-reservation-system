@@ -47,3 +47,9 @@ Finally, we implemented a trigger function in PostgreSQL, tasked with logging CR
 ### Title: Start To Code
 
 It's been a long time, finally I code some smell things that use tonic and gRPC, I use tonic-build crate in the build.rs file which can build the reservation.proto and then BOOM we have reservation.rs in the pb dir that is cuz it can converted protobuf into rs, it's same concept as "SCHEMA", also I learned that "tokei" which is a counting line of code application, that's it, it's wonderful day again. by the way, I'm traveling so maybe not to detail but I do my best : ）.
+
+## 07/31
+
+### Title: use sqlx build migration(遷移)
+
+First, it's important to understand that 'sqlx' is an ORM (Object Relational Mapping) system crate, similar to SeaORM, but with a deeper integration with the database. Once familiar with this concept, I moved on to learning about database migrations. Migrations are used when changes to the database's schema are needed. I generally use the command 'sqlx migrate add 'filename' -r' for this purpose, where '-r' stands for revision migration. Each migration created has a unique timestamp. Every migration is composed of two files, 'up' and 'down'. The 'up' file executes the commands necessary to implement the migration, while the 'down' file allows for the migration to be rolled back if needed.
