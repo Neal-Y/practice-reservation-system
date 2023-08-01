@@ -11,6 +11,20 @@ To record the new technologies and concepts I'm learning.
 
 to adopt the professional habit of an engineer using English for documentation, I utilize this approach. It not only enhances my ability to articulate problems and express my thoughts, but it also cultivates my skills in pinpointing key points and communicating fluently.
 
+
+## Tool kit
+
+TODO: refactor this zone
+
+- pgcli
+- database schema
+- sqlx
+- thiserror
+- tonic
+- tokei
+- async-trait
+- 
+
 ## 07/26
 
 ### Title: Intro With Pre-work
@@ -53,3 +67,9 @@ It's been a long time, finally I code some smell things that use tonic and gRPC,
 ### Title: use sqlx build migration(遷移)
 
 First, it's important to understand that 'sqlx' is an ORM (Object Relational Mapping) system crate, similar to SeaORM, but with a deeper integration with the database. Once familiar with this concept, I moved on to learning about database migrations. Migrations are used when changes to the database's schema are needed. I generally use the command 'sqlx migrate add 'filename' -r' for this purpose, where '-r' stands for revision migration. Each migration created has a unique timestamp. Every migration is composed of two files, 'up' and 'down'. The 'up' file executes the commands necessary to implement the migration, while the 'down' file allows for the migration to be rolled back if needed.
+
+## 08/01
+
+### Title: build the functions about reservation 
+
+learned how to build the trait about what function I need to implement. some basic function like reserve/delete/update etc. to be continued... 
