@@ -9,7 +9,7 @@ pub type ReservationId = String;
 pub type ResourceId = String;
 
 pub struct ReservationManager {
-    pool: PgPool,
+    pool: PgPool, // sqlx 裡面 postgres pool database connection 使用Arc將各種database connection 分開
 }
 
 #[async_trait]

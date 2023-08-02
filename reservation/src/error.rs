@@ -11,6 +11,9 @@ pub enum ReservationError {
     //     expected: String,
     //     found: String,
     // },
+    #[error("Invalid start or end time for reservation")]
+    InvalidTime,
+
     #[error("unknown error")]
     Unknown,
 }

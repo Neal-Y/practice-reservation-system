@@ -70,6 +70,12 @@ First, it's important to understand that 'sqlx' is an ORM (Object Relational Map
 
 ## 08/01
 
-### Title: build the functions about reservation 
+### Title: build the functions about reservation(1)
 
 learned how to build the trait about what function I need to implement. some basic function like reserve/delete/update etc. to be continued... 
+
+## 08/02
+
+### Title: build the functions about reservation(2)
+
+While planning the necessary functions for ReservationManager, I encountered various issues such as a lack of time scope and time conversion (from timestamp to chrono::Utc), but I'm persisting and making progress.
