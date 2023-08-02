@@ -78,4 +78,4 @@ learned how to build the trait about what function I need to implement. some bas
 
 ### Title: build the functions about reservation(2)
 
-While planning the necessary functions for ReservationManager, I encountered various issues such as a lack of time scope and time conversion (from timestamp to chrono::Utc), but I'm persisting and making progress.
+While planning the necessary functions for ReservationManager, I encountered various issues such as a lack of time scope and time conversion (from timestamp to chrono::Utc), but I'm persisting and making progress. by the way, today's BIGGEST part is HOW can I deal with the database "status"(postgres) type can not convert to ReservationStatus.
