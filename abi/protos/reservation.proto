@@ -39,7 +39,7 @@ message ReserveResponse {
     Reservation reservation = 1;
 }
 
-message UpdateRequest { 
+message UpdateRequest {
     string note = 2;
 }
 

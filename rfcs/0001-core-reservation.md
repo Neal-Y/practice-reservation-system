@@ -206,7 +206,16 @@ N/A
 
 ## Prior art
 
-TBD
+TODO: refactor this zone
+
+- pgcli
+- database schema
+- sqlx
+- thiserror
+- tonic
+- tokei
+- async-trait
+-
 
 ## Unresolved questions
 

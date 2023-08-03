@@ -15,10 +15,5 @@ BEGIN
     -- 如果 uid 和 rid 都不是 null，那麼函數將返回指定用戶在指定資源和時間範圍內的所有預約。
         RETURN QUERY SELECT * FROM rsvp.reservations WHERE resource_id = rid AND user_id = uid AND during @> timespan;
     END IF;
-END; 
+END;
 $$ LANGUAGE plpgsql;
-
-
-
-
-

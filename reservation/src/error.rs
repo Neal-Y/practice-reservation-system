@@ -11,6 +11,9 @@ pub enum ReservationError {
     //     expected: String,
     //     found: String,
     // },
+    #[error("database error")]
+    DbError(#[from] sqlx::Error),
+
     #[error("Invalid start or end time for reservation")]
     InvalidTime,
 

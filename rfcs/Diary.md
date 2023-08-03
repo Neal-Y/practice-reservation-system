@@ -5,25 +5,11 @@
 
 ## Summary
 
-To record the new technologies and concepts I'm learning. 
+To document the novel technologies and concepts that I am mastering.
 
 ## Motivation
 
 to adopt the professional habit of an engineer using English for documentation, I utilize this approach. It not only enhances my ability to articulate problems and express my thoughts, but it also cultivates my skills in pinpointing key points and communicating fluently.
-
-
-## Tool kit
-
-TODO: refactor this zone
-
-- pgcli
-- database schema
-- sqlx
-- thiserror
-- tonic
-- tokei
-- async-trait
-- 
 
 ## 07/26
 
@@ -72,10 +58,16 @@ First, it's important to understand that 'sqlx' is an ORM (Object Relational Map
 
 ### Title: build the functions about reservation(1)
 
-learned how to build the trait about what function I need to implement. some basic function like reserve/delete/update etc. to be continued... 
+learned how to build the trait about what function I need to implement. some basic function like reserve/delete/update etc. to be continued...
 
 ## 08/02
 
 ### Title: build the functions about reservation(2)
 
-While planning the necessary functions for ReservationManager, I encountered various issues such as a lack of time scope and time conversion (from timestamp to chrono::Utc), but I'm persisting and making progress. by the way, today's BIGGEST part is HOW can I deal with the database "status"(postgres) type can not convert to ReservationStatus.
+While planning the necessary functions for ReservationManager, I encountered various issues such as a lack of time scope and time conversion (from timestamp to chrono::Utc), but I'm persisting and making progress. by the way, today's **BIGGEST** part is HOW can I deal with the database "status"(postgres) type can not convert to ReservationStatus.**(finished)**
+
+## 08/03
+
+### Title: build the functions about reservation(3)
+
+Today I add new notes to documenting some error when I make this project also changed some README.md, and next time I will be implementing the remaining functions.
