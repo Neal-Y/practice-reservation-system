@@ -1,7 +1,8 @@
 fail_fast: false
+exclude: '^target/'
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v4.4.0
     hooks:
       - id: check-byte-order-marker
       - id: check-case-conflict
@@ -9,14 +10,15 @@ repos:
       - id: check-symlinks
       - id: check-yaml
       - id: end-of-file-fixer
+        exclude: '^target/'
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/psf/black
-    rev: 19.3b0
+    rev: 23.7.0
     hooks:
       - id: black
   - repo: https://github.com/crate-ci/typos
-    rev: v1.8.1
+    rev: typos-dict-v0.10.8
     hooks:
       - id: typos
   - repo: local
@@ -38,21 +40,36 @@ repos:
       - id: cargo-check
         name: cargo check
         description: Check the package for errors.
-        entry: bash -c 'cargo check --all'
+        entry: bash -c 'CARGO_TARGET_DIR=target/target_check cargo check --all'
         language: rust
         files: \.rs$
         pass_filenames: false
       - id: cargo-clippy
         name: cargo clippy
         description: Lint rust sources
-        entry: bash -c 'cargo clippy --all-targets --all-features --tests --benches -- -D warnings'
+        entry: bash -c 'CARGO_TARGET_DIR=target/target_clippy cargo clippy --all-targets --all-features --tests --benches -- -D warnings'
         language: rust
         files: \.rs$
         pass_filenames: false
       - id: cargo-test
         name: cargo test
         description: unit test for the project
-        entry: bash -c 'cargo nextest run --all-features'
+        entry: bash -c 'CARGO_TARGET_DIR=target/target_test cargo nextest run --all-features'
         language: rust
         files: \.rs$
         pass_filenames: false
+      # - id: remove-file
+      #   name: Remove target directory
+      #   description: Remove target directory
+      #   entry: bash -c 'rm -rf target'
+      #   language: system
+      #   pass_filenames: false
+
+
+#! 他們各自表述導致每次只要重新編譯就會導致錯誤，如果像是當跑某一個cargo script就會passed，但如果假設cargo clippy 跟 cargo test兩個一起跑
+#! 就會發生cargo clippy 過了但cargo test failed
+#! cargo test...............................................................Failed
+#! - hook id: cargo-test
+#! - files were modified by this hook
+
+#
