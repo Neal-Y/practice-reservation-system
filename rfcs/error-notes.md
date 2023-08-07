@@ -59,9 +59,27 @@ thiserror crate 提供了一個方便的方式來自定義你的錯誤類型，�
 
 簡單來說，sqlx::Error 自動轉換為你自定義的 ReservationError::DbError
 
-## ERROR：
+## ERROR：message: "cannot cast type integer to rsvp.reservation_status"
 ### Describe:
+```rust
+thread 'manager::tests::reserve_should_work_for_valid_window' panicked at 'called `Result::unwrap()` on an `Err` value: DbError(Database(PgDatabaseError { severity: Error, code: "42846", message: "cannot cast type integer to rsvp.reservation_status", detail: None, hint: None, position: Some(Original(104)), where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("parse_expr.c"), line: Some(2665), routine: Some("transformTypeCast") }))', reservation/src/manager.rs:95:48
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+thread 'manager::tests::reserve_should_work_for_valid_window' panicked at 'The main test function crashed, the test database got cleaned', reservation/src/manager.rs:80:5
+```
 
 ## Error Analysis
 
+可以看到是因為
+
+```rust
+#[derive(
+    sqlx::Type, Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration,
+)]
+#[repr(i32)]
+```
+
+在這裡使用了 #[repr(i32)]，但是在資料庫中，reservation_status 是一個字串，所以出現這樣的錯誤。
+
 ## Solution
+
+為ReservationStatus實現fmt::Display，並在資料庫中使用字串來表示reservation_status

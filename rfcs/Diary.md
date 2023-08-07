@@ -71,3 +71,23 @@ While planning the necessary functions for ReservationManager, I encountered var
 ### Title: build the functions about reservation(3)
 
 Today I add new notes to documenting some error when I make this project also changed some README.md, and next time I will be implementing the remaining functions.
+
+- **TODO: I need to fix my git... .pre-commit-config.yaml**
+
+## 08/04
+
+### Title: pre-commit problem
+
+I need to check my configuration to see where the problem is, but I don't know how to do it. I'll try to figure it out a several days, before I solve this problem I should to move on to next step, to implement remaining functions.
+
+## 08/06
+
+### Title: due to unittest so build mock database to do some connection
+
+First and foremost, I've adopted the good practice of using Test-Driven Development (TDD) to ensure my code during refactoring, with the aim of avoiding potential problems that may arise when communicating with external systems. In this process, I've encountered two main challenges:
+
+Testing the Database Interaction: Previously, when testing the network layer in unit tests, we could mock requests and self-answer. However, now we need to interact with the database, requiring a more authentic data source. To resolve this, I've created a mock database to perform a series of migrations during testing. This approach allows us to operate on a relatively real database without interfering with the actual one, then delete the mock database after satisfying the unit test.
+
+Clear Conflict Messages with sqlx::PgDatabase::Error: While further testing for conflict reserves, I needed to understand the problem through error messages. However, PgDatabaseError didn't provide a way to return a very "clear" conflict problem to the user. Since PgDatabaseError doesn't offer a better method for detailed error information, we had to implement our own function to parse a large amount of raw data obtained from get_raw() within PgDatabaseError.
+
+- **TODO: write a parser**
