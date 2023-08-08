@@ -102,4 +102,12 @@ Ps: If I fixed I'll document it to [Error note](./error-notes.md)
 
 ## 08/08
 
-### Title:
+### Title: write a parser to catch errors and describe them as detailed as possible
+
+1. Printing Details of a Specific Error: To print the details of a particular error, the ReservationConflictInfo enum is used, encompassing two cases: successful (Parsed) and unsuccessful (Unparsed).
+2. Structure for Successful Printing: Successful printing utilizes the ReservationConflict structure, containing two separate structures to represent two kinds of Reserve scenarios, encapsulated by ReservationWindow.
+3. Newly Added Parsing Structure: A new structure, ParsedInfo, was added to hold parsed paired HashMap data. Regular expressions, .try_fold(), and .and_then() methods were applied for parsing.
+4. Error Handling Approach: Reflected on the solutions from a previous todo project, gaining insights into managing errors in the current project.
+
+- **TODO:familiar my function**
+- **TODO:write some error handling**
