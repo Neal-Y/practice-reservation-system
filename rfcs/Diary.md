@@ -72,7 +72,7 @@ While planning the necessary functions for ReservationManager, I encountered var
 
 Today I add new notes to documenting some error when I make this project also changed some README.md, and next time I will be implementing the remaining functions.
 
-- **TODO: I need to fix my git... .pre-commit-config.yaml**
+- [x] TODO: I need to fix my git... .pre-commit-config.yaml
 
 ## 08/04
 
@@ -90,10 +90,16 @@ Testing the Database Interaction: Previously, when testing the network layer in 
 
 Clear Conflict Messages with sqlx::PgDatabase::Error: While further testing for conflict reserves, I needed to understand the problem through error messages. However, PgDatabaseError didn't provide a way to return a very "clear" conflict problem to the user. Since PgDatabaseError doesn't offer a better method for detailed error information, we had to implement our own function to parse a large amount of raw data obtained from get_raw() within PgDatabaseError.
 
-- **TODO: write a parser**
+- [ ] TODO: write a parser
 
 ## 08/07
 
-### Title: fixed cargo script dut to target conflict problem
+### Title: fixing cargo script dut to target conflict problem
 
 The issue I encountered is that when using four cargo scripts, they conflict with each other due to the previously compiled files. This leads to the 'file were modified by this hook' error, as the next test requires recompilation to meet the script's criteria. Currently, I'm storing their respective compiled files separately, but I feel this isn't an ideal solution, and I will continue to look for a better way.
+
+Ps: If I fixed I'll document it to [Error note](./error-notes.md)
+
+## 08/08
+
+### Title:

@@ -57,7 +57,7 @@ pub enum ReservationError {
 
 thiserror crate 提供了一個方便的方式來自定義你的錯誤類型，並自動實現 std::error::Error trait。#[from] 屬性告訴 thiserror 自動為 ReservationError::DbError 生成從 sqlx::Error 轉換來的代碼，這樣就可以使用 ? 運算符了。
 
-簡單來說，sqlx::Error 自動轉換為你自定義的 ReservationError::DbError
+簡單來說，sqlx::Error 自動轉換為你自定義的ReservationError::DbError
 
 ## ERROR：message: "cannot cast type integer to rsvp.reservation_status"
 ### Describe:
@@ -83,3 +83,47 @@ thread 'manager::tests::reserve_should_work_for_valid_window' panicked at 'The m
 ## Solution
 
 為ReservationStatus實現fmt::Display，並在資料庫中使用字串來表示reservation_status
+
+## ERROR：during Pre-commit git has tracked compiled files lead to cargo hook conflict
+### Describe:
+當我使用*pre-commit hook*來讓我在*git commit -a*時可以自動運行測試，但是在我使用*git commit -a*時，出現諸多conflict，舉凡像是：
+1. end-of-file-fixer： hook 誤以為target檔有錯誤所以自行幫我加上一些修復像是
+````Fixing target/debug/.fingerprint/try-lock-bb4d5568da5b854e/lib-try-lock.json````
+2. Typos 語法錯誤： 同上像是：
+```rust
+typos....................................................................Failed
+- hook id: typos
+- exit code: 2
+
+error: `ba` should be `by`, `be`
+  --> target/debug/.fingerprint/futures-io-0fdc36943930b64b/lib-futures-io:1:11
+  |
+1 | dfce884c71ba0318
+  |           ^^
+  |
+error: `ba` should be `by`, `be`
+````
+3. cargo clippy、cargo check、cargo test conflict：如上所說，導致他們對於已編譯的檔案不相符需要重編譯，而這就導致
+``` files were modified by this hook```
+
+## Error Analysis
+
+首先，cargo clippy、cargo check、cargo test他們各自由於需要深入了解代碼的語法和語義，所以它實際上會執行類似於```編譯的過程```。但是，這與 cargo build 不同，他們不會產生最終的二進制輸出。
+
+cargo clippy 和 cargo check 都可能與 target 目錄中的編譯緩存互動，這就是為什麼會看到```"file were modified by this hook"```的原因。
+
+也因為這樣導致當我有追蹤原本就編譯好的target/檔會出現不符預期各個hook需要重新編譯的原因。
+
+## Solution
+
+當執行了```git rm -r --cached target```命令，其實是告訴 Git 忽略 target 目錄下的所有已經追蹤的文件。這樣做的結果是，這些文件不再被 Git 控制，所以它們不會被包括在任何提交或檢查中。
+
+以下是這樣做可能解決了問題的原因：
+
+1. **重複編譯問題**: 由於 target 目錄不再被 Git 控制，每個 pre-commit hook 都可以自由修改它，而不會讓 Git 察覺這些變化。這樣就不會觸發 "files were modified by this hook" 的錯誤。
+
+2. **編譯產物和源代碼的分離**: target 目錄通常包括編譯的產物，而不是源代碼。一些工具（例如 cargo clippy 或 cargo check）可能會對 target 目錄中的文件進行不必要的操作，因為它們誤以為這些文件是源代碼的一部分。通過讓 Git 忽略這個目錄，也告訴這些工具忽略它，從而避免了這個問題。
+
+3. **typos 出錯**: typos 是一個拼寫檢查工具。如果它被配置為檢查 target 目錄，它可能會在編譯的產物中找到 "拼寫錯誤"，這實際上可能只是源代碼中合法的符號或識別符。通過讓 Git 忽略 target 目錄，也避免了這個問題。
+
+最後我在.gitignore 文件中添加/target，以便 Git 自動忽略這個目錄。這樣，不僅可以避免上述問題，而且還可以確保未來的 ``git add . `` 命令不會意外地將這個目錄加入到存儲庫中。
