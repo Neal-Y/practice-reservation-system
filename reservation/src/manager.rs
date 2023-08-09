@@ -67,6 +67,8 @@ impl ReservationManager {
 #[cfg(test)]
 mod tests {
 
+    use abi::ReservationConflictInfo;
+
     use super::*;
 
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
@@ -85,29 +87,35 @@ mod tests {
         assert!(!rsvp.id.is_empty());
     }
 
-    // #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    // async fn reserve_conflict_should_reject() {
-    //     let manager = ReservationManager::new(migrated_pool.clone());
+    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
+    async fn reserve_conflict_should_reject() {
+        let manager = ReservationManager::new(migrated_pool.clone());
 
-    //     let rsvp1 = abi::Reservation::new_pending(
-    //         "tryid",
-    //         "ocean-view-room-713",
-    //         "2022-12-25T15:00:00-0700".parse().unwrap(),
-    //         "2022-12-28T12:00:00-0700".parse().unwrap(),
-    //         "I'll arrive at 3pm. Please help to upgrade to executive room if possible.",
-    //     );
+        let rsvp1 = abi::Reservation::new_pending(
+            "tryid",
+            "ocean-view-room-713",
+            "2022-12-25T15:00:00-0700".parse().unwrap(),
+            "2022-12-28T12:00:00-0700".parse().unwrap(),
+            "I'll arrive at 3pm. Please help to upgrade to executive room if possible.",
+        );
 
-    //     let rsvp2 = abi::Reservation::new_pending(
-    //         "conflict_userId",
-    //         "ocean-view-room-713",
-    //         "2022-12-26T15:00:00-0700".parse().unwrap(),
-    //         "2022-12-30T12:00:00-0700".parse().unwrap(),
-    //         "Test Conflict",
-    //     );
+        let rsvp2 = abi::Reservation::new_pending(
+            "conflict_userId",
+            "ocean-view-room-713",
+            "2022-12-26T15:00:00-0700".parse().unwrap(),
+            "2022-12-30T12:00:00-0700".parse().unwrap(),
+            "Test Conflict",
+        );
 
-    //     let _rsvp1 = manager.reserve(rsvp1).await.unwrap();
-    //     let err = manager.reserve(rsvp2).await.unwrap_err();
-    //     println!("{:?}", err);
-    //     if let abi::Error::ConflictReservation(_info) = err {}
-    // }
+        let _rsvp1 = manager.reserve(rsvp1).await.unwrap();
+        let err = manager.reserve(rsvp2).await.unwrap_err();
+
+        if let abi::Error::ConflictReservation(ReservationConflictInfo::Parsed(info)) = err {
+            assert_eq!(info.b.rid, "ocean-view-room-713");
+            assert_eq!(info.b.start.to_rfc3339(), "2022-12-25T22:00:00+00:00");
+            assert_eq!(info.b.end.to_rfc3339(), "2022-12-28T19:00:00+00:00"); // //! 記得有timezone(+7)
+        } else {
+            panic!("expect conflict reservation error");
+        }
+    }
 }

@@ -72,7 +72,7 @@ While planning the necessary functions for ReservationManager, I encountered var
 
 Today I add new notes to documenting some error when I make this project also changed some README.md, and next time I will be implementing the remaining functions.
 
-- [x] TODO: I need to fix my git... .pre-commit-config.yaml
+- [x] **TODO: I need to fix my git... .pre-commit-config.yaml**
 
 ## 08/04
 
@@ -90,7 +90,7 @@ Testing the Database Interaction: Previously, when testing the network layer in 
 
 Clear Conflict Messages with sqlx::PgDatabase::Error: While further testing for conflict reserves, I needed to understand the problem through error messages. However, PgDatabaseError didn't provide a way to return a very "clear" conflict problem to the user. Since PgDatabaseError doesn't offer a better method for detailed error information, we had to implement our own function to parse a large amount of raw data obtained from get_raw() within PgDatabaseError.
 
-- [ ] TODO: write a parser
+- [x] TODO: write a parser
 
 ## 08/07
 
@@ -109,5 +109,17 @@ Ps: If I fixed I'll document it to [Error note](./error-notes.md)
 3. Newly Added Parsing Structure: A new structure, ParsedInfo, was added to hold parsed paired HashMap data. Regular expressions, .try_fold(), and .and_then() methods were applied for parsing.
 4. Error Handling Approach: Reflected on the solutions from a previous todo project, gaining insights into managing errors in the current project.
 
-- **TODO:familiar my function**
-- **TODO:write some error handling**
+- [x] **TODO:familiar my function**
+- [x] **TODO:write some error handling**
+
+## 08/09
+
+### Title: wrote a parser to catch errors and describe them as detailed as possible
+
+While developing conflict tests for the reservation system, I created a function named reserve_conflict_should_reject() to handle booking conflicts specifically. When a conflicting reservation occurs, I expected an error to be triggered in the database, and I stored it in the err variable.
+
+I began by defining a ConflictReservation error and placing it into ReservationConflictInfo, then manually implemented the From trait for it. During the parsing of this error, I utilized the FromStr trait and regular expressions to interpret the error message into the ReservationConflict structure.
+
+Since this structure involves multiple parts like ReservationWindow, I implemented the FromStr and TryFrom traits for these parts individually. In dealing with dates, I paid special attention to time zones, using a specific format.
+
+Through these series of actions, I was able to effectively manage reservation conflicts and ensure the accuracy of the tests.

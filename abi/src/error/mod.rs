@@ -33,6 +33,9 @@ pub enum Error {
 
     #[error("unknown error")]
     Unknown,
+
+    #[error("parsed failed")]
+    ParsedFailed,
 }
 
 impl From<sqlx::Error> for Error {
