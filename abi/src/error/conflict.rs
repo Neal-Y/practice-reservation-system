@@ -34,7 +34,6 @@ impl FromStr for ReservationConflictInfo {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ReservationConflict {
     pub a: ReservationWindow,
@@ -49,7 +48,6 @@ impl FromStr for ReservationConflict {
     }
 }
 
-#[allow(dead_code)]
 pub struct ParsedInfo {
     a: HashMap<String, String>,
     b: HashMap<String, String>,
@@ -115,7 +113,6 @@ impl TryFrom<ParsedInfo> for ReservationConflict {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ReservationWindow {
     pub rid: String,
