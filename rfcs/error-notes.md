@@ -88,7 +88,7 @@ thread 'manager::tests::reserve_should_work_for_valid_window' panicked at 'The m
 ### Describe:
 當我使用*pre-commit hook*來讓我在*git commit -a*時可以自動運行測試，但是在我使用*git commit -a*時，出現諸多conflict，舉凡像是：
 1. end-of-file-fixer： hook 誤以為target檔有錯誤所以自行幫我加上一些修復像是
-````Fixing target/debug/.fingerprint/try-lock-bb4d5568da5b854e/lib-try-lock.json````
+``Fixing target/debug/.fingerprint/try-lock-bb4d5568da5b854e/lib-try-lock.json``
 2. Typos 語法錯誤： 同上像是：
 ```rust
 typos....................................................................Failed
@@ -102,15 +102,15 @@ error: `ba` should be `by`, `be`
   |           ^^
   |
 error: `ba` should be `by`, `be`
-````
+```
 3. cargo clippy、cargo check、cargo test conflict：如上所說，導致他們對於已編譯的檔案不相符需要重編譯，而這就導致
-``` files were modified by this hook```
+`` files were modified by this hook``
 
 ## Error Analysis
 
 首先，cargo clippy、cargo check、cargo test他們各自由於需要深入了解代碼的語法和語義，所以它實際上會執行類似於```編譯的過程```。但是，這與 cargo build 不同，他們不會產生最終的二進制輸出。
 
-cargo clippy 和 cargo check 都可能與 target 目錄中的編譯緩存互動，這就是為什麼會看到```"file were modified by this hook"```的原因。
+cargo clippy 和 cargo check 都可能與 target 目錄中的編譯緩存互動，這就是為什麼會看到``"file were modified by this hook"``的原因。
 
 也因為這樣導致當我有追蹤原本就編譯好的target/檔會出現不符預期各個hook需要重新編譯的原因。
 
@@ -127,3 +127,97 @@ cargo clippy 和 cargo check 都可能與 target 目錄中的編譯緩存互動�
 3. **typos 出錯**: typos 是一個拼寫檢查工具。如果它被配置為檢查 target 目錄，它可能會在編譯的產物中找到 "拼寫錯誤"，這實際上可能只是源代碼中合法的符號或識別符。通過讓 Git 忽略 target 目錄，也避免了這個問題。
 
 最後我在.gitignore 文件中添加/target，以便 Git 自動忽略這個目錄。這樣，不僅可以避免上述問題，而且還可以確保未來的 ``git add . `` 命令不會意外地將這個目錄加入到存儲庫中。
+
+## ERROR： trait `for<'r> FromRow<'r, PgRow>` is not implemented for `Reservation`
+### Describe: 當我對change_status()進行implement時，中間針對資料庫的操作時我使用了sqlx::query_as()，但是在編譯時出現了以下錯誤：
+```rust
+error[E0277]: the trait bound `for<'r> Reservation: FromRow<'r, PgRow>` is not satisfied
+   --> reservation/src/manager.rs:38:20
+    |
+38  |         let rsvp = sqlx::query_as("UPDATE rsvp.reservation.status SET status = 'confirmed' WHERE id = $1 AND status = 'pending' RETURNING *")
+    |                    ^^^^^^^^^^^^^^ the trait `for<'r> FromRow<'r, PgRow>` is not implemented for `Reservation`
+    |
+    = help: the following other types implement trait `FromRow<'r, R>`:
+              (T1, T2)
+              (T1, T2, T3)
+              (T1, T2, T3, T4)
+              (T1, T2, T3, T4, T5)
+              (T1, T2, T3, T4, T5, T6)
+              (T1, T2, T3, T4, T5, T6, T7)
+              (T1, T2, T3, T4, T5, T6, T7, T8)
+              (T1, T2, T3, T4, T5, T6, T7, T8, T9)
+            and 8 others
+note: required by a bound in `sqlx::query_as`
+   --> /Users/shin/.cargo/registry/src/github.com-1ecc6299db9ec823/sqlx-core-0.6.3/src/query_as.rs:174:8
+    |
+174 |     O: for<'r> FromRow<'r, DB::Row>,
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `query_as`
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+## Error Analysis
+
+簡單來說就是`Reservation這個 struct 沒有實作FromRow<'r, PgRow>`這個trait，但是我在實作時卻有使用到sqlx::query_as()，而這個方法需要實作FromRow<'r, PgRow>這個trait。
+
+## Solution
+
+為Reservation 實現FromRow<'r, PgRow>這個trait，並且實作from_row()這個方法，這個方法是用來將資料庫的資料轉換成也就是mapped struct的方法。
+```rust
+impl FromRow<'_, PgRow> for Reservation {
+    fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
+        let range: PgRange<DateTime<Utc>> = row.get("timespan");
+        let range: NativeRange<DateTime<Utc>> = range.into();
+
+        let start = range.start.unwrap();
+        let end = range.end.unwrap();
+
+        Ok(Self {
+            id: row.get::<Uuid, _>("id").to_string(),
+            user_id: row.get("user_id"),
+            resource_id: row.get("resource_id"),
+            start: Some(convert_to_timestamp(start)),
+            end: Some(convert_to_timestamp(end)),
+            note: row.get("note"),
+            status: ReservationStatus::from(row.get::<RsvpStatus, _>("status")) as i32,
+        })
+    }
+}
+```
+
+## ERROR：stack overflow
+### Describe:
+我在為我的Error枚舉實現PartialEq時遇到了問題。我的最初的實現看起來像這樣：
+```rust
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::DbError(_), Self::DbError(_)) => true,
+            (v1, v2) => v1 == v2,
+        }
+    }
+}
+```
+我的程式發生了stack overflow。這是因為在`(v1, v2) => v1 == v2`這行，當v1和v2是具有相同內部結構的Error變體（例如InvalidUserId或InvalidReservation），這一行會再次呼叫eq方法，造成無窮遞迴。
+
+## Error Analysis
+
+我了解到問題出在我通用的比較處理上。我想要的是比較每個變體的內部值，而不是再次呼叫整個枚舉的eq方法。也就是說假設我現在有兩個InvalidUserId，我想要比較此時他們會呼叫這行`(v1, v2) => v1 == v2`,問題尷尬就尷尬在後面要執行時，會再次呼叫`eq`方法，造成無窮遞迴。
+
+## Solution
+
+我修改了PartialEq的實現，明確地處理每個變體，並對它們的內部值進行比較。這避免了遞迴問題：
+```rust
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::DbError(_), Self::DbError(_)) => true,
+            (Self::InvalidTime, Self::InvalidTime) => true,
+            (Self::InvalidUserId(v1), Self::InvalidUserId(v2)) => v1 == v2,
+            // 其他變體的處理...
+            _ => false,
+        }
+    }
+}
+```
+通過明確地比較每個變體的內部值，而不是再次呼叫枚舉的eq方法，例如，假設`InvalidResourceId`變體內部存儲的是`String`類型，那麼`v1 == v2`將呼叫String的`PartialEq`方法，而不是自定義的Error枚舉的PartialEq方法。這就避免了無窮遞迴的問題，因為它不會再次進入Error枚舉的PartialEq實現。

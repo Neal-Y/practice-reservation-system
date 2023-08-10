@@ -123,3 +123,19 @@ I began by defining a ConflictReservation error and placing it into ReservationC
 Since this structure involves multiple parts like ReservationWindow, I implemented the FromStr and TryFrom traits for these parts individually. In dealing with dates, I paid special attention to time zones, using a specific format.
 
 Through these series of actions, I was able to effectively manage reservation conflicts and ensure the accuracy of the tests.
+
+## 08/10
+
+### Title: finished the reservation related function
+
+1. 查詢語句與類型問題
+我開始遇到了資料庫查詢與ID類型不匹配的問題。在查詢語句中，我嘗試使用字串類型的ID，但資料庫中卻是UUID類型。這引發了一個錯誤，具體表現為PostgreSQL的“operator does not exist: uuid = text”錯誤。為了解這個問題，我必須將ID從字串轉換為UUID，並在查詢語句中使用正確的類型。這讓我深刻了解到，在與資料庫的交互中，資料類型的精確匹配是非常重要的。
+
+1. 堆疊溢出問題
+在實現PartialEq時，我遇到了堆疊溢出的問題。我最初的實現包含了一個不小心的遞迴調用，導致了堆疊溢出。具體來說，在比較兩個枚舉值時，我不小心呼叫了自己的eq方法。透過更精確地處理每個變體，例如分別匹配每個錯誤變體並正確比較其內部值，我解決了這個問題。
+
+1. 深入理解Rust模式匹配
+透過上述的問題解決過程，我深入了解了Rust的模式匹配和如何使用它來比較枚舉的不同變體。我學會了如何避免遞迴引起的堆疊溢出，並如何更精確地處理我的匹配條件。
+
+1. 實現FromRow以及query與query_as的使用差別
+在開發過程中，我也遇到了需要使用query_as和實現FromRow的情況。query_as允許我將查詢結果映射到具體的Rust結構，而FromRow則是一個trait，允許自定義結構如何從資料庫行映射。與普通的query方法相比，query_as為查詢結果提供了更強的類型安全性。

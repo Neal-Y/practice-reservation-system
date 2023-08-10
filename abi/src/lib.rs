@@ -3,6 +3,6 @@ mod pb;
 mod types;
 mod utils;
 
-pub use error::{Error, ReservationConflictInfo};
+pub use error::{Error, ReservationConflict, ReservationConflictInfo, ReservationWindow};
 pub use pb::*;
 pub use types::*;

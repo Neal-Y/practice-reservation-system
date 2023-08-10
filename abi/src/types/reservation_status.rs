@@ -11,3 +11,25 @@ impl fmt::Display for ReservationStatus {
         }
     }
 }
+
+// database equivalent of the "reservation_status" enum, translate RsvpStatus into database's reservation_status.
+// cuz database's reservation_status have #[repr(i32)] represent i32 in FFI(外部函數介面)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "reservation_status", rename_all = "lowercase")]
+pub enum RsvpStatus {
+    Pending,
+    Blocked,
+    Confirmed,
+    Unknown,
+}
+
+impl From<RsvpStatus> for ReservationStatus {
+    fn from(status: RsvpStatus) -> Self {
+        match status {
+            RsvpStatus::Pending => Self::Pending,
+            RsvpStatus::Blocked => Self::Blocked,
+            RsvpStatus::Confirmed => Self::Confirmed,
+            RsvpStatus::Unknown => Self::Unknown,
+        }
+    }
+}

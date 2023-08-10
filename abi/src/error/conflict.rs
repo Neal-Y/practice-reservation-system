@@ -16,7 +16,7 @@ use std::{collections::HashMap, convert::Infallible, str::FromStr, vec};
 
 //? target: to parse the info into below struct
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReservationConflictInfo {
     Parsed(ReservationConflict),
     Unparsed(String),
@@ -34,7 +34,7 @@ impl FromStr for ReservationConflictInfo {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReservationConflict {
     pub a: ReservationWindow,
     pub b: ReservationWindow,
@@ -113,7 +113,7 @@ impl TryFrom<ParsedInfo> for ReservationConflict {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReservationWindow {
     pub rid: String,
     pub start: DateTime<Utc>,

@@ -3,19 +3,13 @@ mod conflict;
 use sqlx::postgres::PgDatabaseError;
 use thiserror::Error;
 
-pub use conflict::{ReservationConflictInfo, ReservationWindow};
+pub use conflict::{ReservationConflict, ReservationConflictInfo, ReservationWindow};
 
 #[derive(Error, Debug)]
 pub enum Error {
-    // #[error("data store disconnected")]
-    // Disconnect(#[from] io::Error),
-    // #[error("the data for key `{0}` is not available")]
-    // Redaction(String),
-    // #[error("invalid header (expected {expected:?}, found {found:?})")]
-    // InvalidHeader {
-    //     expected: String,
-    //     found: String,
-    // },
+    #[error("pending was confirmed")]
+    NotFound,
+
     #[error("database error")]
     DbError(sqlx::Error),
 
@@ -24,6 +18,9 @@ pub enum Error {
 
     #[error("Invalid User Id:{0}")]
     InvalidUserId(String),
+
+    #[error("Invalid Reservation Id:{0}")]
+    InvalidReservationId(String),
 
     #[error("conflict reservation")]
     ConflictReservation(ReservationConflictInfo),
@@ -51,6 +48,23 @@ impl From<sqlx::Error> for Error {
                 }
             }
             _ => Error::DbError(e),
+        }
+    }
+}
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::DbError(_), Self::DbError(_)) => true,
+            (Self::InvalidTime, Self::InvalidTime) => true,
+            (Self::InvalidUserId(v1), Self::InvalidUserId(v2)) => v1 == v2,
+            (Self::InvalidReservationId(v1), Self::InvalidReservationId(v2)) => v1 == v2,
+            (Self::ConflictReservation(v1), Self::ConflictReservation(v2)) => v1 == v2,
+            (Self::InvalidResourceId(v1), Self::InvalidResourceId(v2)) => v1 == v2,
+            (Self::Unknown, Self::Unknown) => true,
+            (Self::ParsedFailed, Self::ParsedFailed) => true,
+            (Self::NotFound, Self::NotFound) => true,
+            _ => false,
         }
     }
 }
