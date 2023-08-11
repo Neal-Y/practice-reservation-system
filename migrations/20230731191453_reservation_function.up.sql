@@ -1,6 +1,14 @@
 -- 這是一個使用者查詢的function
 
-CREATE OR REPLACE FUNCTION rsvp.query(uid text, rid text, during TSTZRANGE) RETURNS TABLE (LIKE rsvp.reservations) AS $$
+CREATE OR REPLACE FUNCTION rsvp.query(
+    uid text,
+    rid text,
+    during TSTZRANGE
+--     page integer DEFAULT 1,
+--     is_desc bool DEFAULT FALSE
+--     page_size integer DEFAULT 10
+)
+RETURNS TABLE (LIKE rsvp.reservations) AS $$
 BEGIN
     IF uid IS NULL AND rid IS NULL THEN
     -- 如果 uid 和 rid 都是 null，那麼函數將返回在指定時間範圍內的所有預約。

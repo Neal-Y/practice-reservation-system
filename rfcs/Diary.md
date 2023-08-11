@@ -139,3 +139,9 @@ Through these series of actions, I was able to effectively manage reservation co
 
 1. 實現FromRow以及query與query_as的使用差別
 在開發過程中，我也遇到了需要使用query_as和實現FromRow的情況。query_as允許我將查詢結果映射到具體的Rust結構，而FromRow則是一個trait，允許自定義結構如何從資料庫行映射。與普通的query方法相比，query_as為查詢結果提供了更強的類型安全性。
+
+## 08/11
+
+### Title: fixed the unit test and refactor make_reservation function and create template reserve data.
+
+finished the first stage of the reservation system, and I'm going to start the second stage. In the first stage, I've implemented the basic functions of the reservation system, including creating reservations, querying reservations, and handling conflicts. tomorrow I'll start the second stage, which is to check protobuf to make sure query function could be easy to use, so I'm going to implement pagination for database.

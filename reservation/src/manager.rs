@@ -100,59 +100,41 @@ impl ReservationManager {
 #[cfg(test)]
 mod tests {
 
-    use abi::{ReservationConflict, ReservationConflictInfo, ReservationWindow};
+    use abi::{Reservation, ReservationConflict, ReservationConflictInfo, ReservationWindow};
 
     use super::*;
 
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
     async fn reserve_should_work_for_valid_window() {
-        let manager = ReservationManager::new(migrated_pool.clone());
-
-        let rsvp = abi::Reservation::new_pending(
-            "tryid",
-            "ocean-view-room-713",
-            "2022-12-25T15:00:00-0700".parse().unwrap(),
-            "2022-12-28T12:00:00-0700".parse().unwrap(),
-            "I'll arrive at 3pm. Please help to upgrade to executive room if possible.",
-        );
-
-        let rsvp = manager.reserve(rsvp).await.unwrap();
+        let (rsvp, _manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
         assert!(!rsvp.id.is_empty());
     }
 
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
     async fn reserve_conflict_should_reject() {
-        let manager = ReservationManager::new(migrated_pool.clone());
-
-        let rsvp1 = abi::Reservation::new_pending(
-            "tryid",
-            "ocean-view-room-713",
-            "2022-12-25T15:00:00-0700".parse().unwrap(),
-            "2022-12-28T12:00:00-0700".parse().unwrap(),
-            "I'll arrive at 3pm. Please help to upgrade to executive room if possible.",
-        );
+        let (_rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
 
         let rsvp2 = abi::Reservation::new_pending(
             "conflict_userId",
-            "ocean-view-room-713",
+            "Presidential-Suite",
             "2022-12-26T15:00:00-0700".parse().unwrap(),
             "2022-12-30T12:00:00-0700".parse().unwrap(),
             "Test Conflict",
         );
 
-        let _rsvp1 = manager.reserve(rsvp1).await.unwrap();
         let err = manager.reserve(rsvp2).await.unwrap_err();
 
         let info = ReservationConflictInfo::Parsed(ReservationConflict {
-            a: ReservationWindow {
-                rid: "ocean-view-room-713".to_string(),
+            new: ReservationWindow {
+                rid: "Presidential-Suite".to_string(),
                 start: "2022-12-26T15:00:00-0700".parse().unwrap(),
                 end: "2022-12-30T12:00:00-0700".parse().unwrap(),
             },
-            b: ReservationWindow {
-                rid: "ocean-view-room-713".to_string(),
+
+            old: ReservationWindow {
+                rid: "Presidential-Suite".to_string(),
                 start: "2022-12-25T15:00:00-0700".parse().unwrap(),
-                end: "2022-12-28T12:00:00-0700".parse().unwrap(),
+                end: "2023-1-25T12:00:00-0700".parse().unwrap(),
             },
         });
 
@@ -161,17 +143,7 @@ mod tests {
 
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
     async fn change_pending_status_should_be_confirm() {
-        let manager = ReservationManager::new(migrated_pool.clone());
-
-        let rsvp = abi::Reservation::new_pending(
-            "yangid",
-            "Presidential Suite",
-            "2022-12-25T15:00:00-0700".parse().unwrap(),
-            "2023-1-25T12:00:00-0700".parse().unwrap(),
-            "I spent all of my money so plz gives me a wonderful feeling.",
-        );
-
-        let rsvp = manager.reserve(rsvp).await.unwrap();
+        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
 
         let rsvp = manager.change_status(rsvp.id).await.unwrap();
 
@@ -180,17 +152,7 @@ mod tests {
 
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
     async fn status_confirmed_update_status_should_do_nothing() {
-        let manager = ReservationManager::new(migrated_pool.clone());
-
-        let rsvp = abi::Reservation::new_pending(
-            "yangid",
-            "Presidential Suite",
-            "2022-12-25T15:00:00-0700".parse().unwrap(),
-            "2023-1-25T12:00:00-0700".parse().unwrap(),
-            "I spent all of my money so plz gives me a wonderful feeling.",
-        );
-
-        let rsvp = manager.reserve(rsvp).await.unwrap();
+        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
 
         let rsvp = manager.change_status(rsvp.id).await.unwrap();
 
@@ -202,18 +164,7 @@ mod tests {
 
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
     async fn update_note_should_work() {
-        let manager = ReservationManager::new(migrated_pool.clone());
-
-        let rsvp = abi::Reservation::new_pending(
-            "yangid",
-            "Presidential Suite",
-            "2022-12-25T15:00:00-0700".parse().unwrap(),
-            "2023-1-25T12:00:00-0700".parse().unwrap(),
-            "I spent all of my money so plz gives me a wonderful feeling.",
-        );
-
-        let rsvp = manager.reserve(rsvp).await.unwrap();
-
+        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
         let rsvp = manager.update_note(
             rsvp.id,
             "I spent all of my money so plz gives me a wonderful feeling. I want to have a wonderful experience.".to_string(),
@@ -222,55 +173,59 @@ mod tests {
         assert_eq!(rsvp.note, "I spent all of my money so plz gives me a wonderful feeling. I want to have a wonderful experience.");
     }
 
-    // #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    // async fn cancel_pending_status_should_be_cancelled() {
-    //     let manager = ReservationManager::new(migrated_pool.clone());
+    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
+    async fn cancel_pending_status_should_be_cancelled() {
+        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
+        manager.delete(rsvp.id.clone()).await.unwrap();
+        let canceled = manager.get(rsvp.id).await.unwrap_err();
 
-    //     let rsvp = abi::Reservation::new_pending(
-    //         "yangid",
-    //         "Presidential Suite",
-    //         "2022-12-25T15:00:00-0700".parse().unwrap(),
-    //         "2023-1-25T12:00:00-0700".parse().unwrap(),
-    //         "I spent all of my money so plz gives me a wonderful feeling.",
-    //     );
-
-    //     let rsvp = manager.reserve(rsvp).await.unwrap();
-
-    //     let rsvp = manager.delete(rsvp.id).await.unwrap();
-
-    //     assert_eq!(rsvp, ());
-    // }
+        assert_eq!(
+            canceled,
+            abi::Error::NotFound,
+            "Failed to delete reservation"
+        );
+    }
 
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
     async fn test_getter_should_return_reservation() {
-        let manager = ReservationManager::new(migrated_pool.clone());
-
-        let rsvp = abi::Reservation::new_pending(
-            "yangid",
-            "Presidential Suite",
-            "2022-12-25T15:00:00-0700".parse().unwrap(),
-            "2023-1-25T12:00:00-0700".parse().unwrap(),
-            "I spent all of my money so plz gives me a wonderful feeling.",
-        );
-
-        let rsvp = manager.reserve(rsvp).await.unwrap();
+        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
 
         let rsvp = manager.get(rsvp.id).await.unwrap();
 
         assert_eq!(rsvp.status, abi::ReservationStatus::Pending as i32);
     }
-}
 
-// async fn make_reservation(
-//     pool: PgPool,
-//     id: &str,
-//     rid: &str,
-//     start: &str,
-//     end: &str,
-//     note: &str,
-// ) -> Reservation {
-//     let manager = Arc::new(ReservationManager::new(pool.clone()));
-//     let rsvp =
-//         abi::Reservation::new_pending(id, rid, start.parse().unwrap(), end.parse().unwrap(), note)?;
-//     manager.reserve(rsvp).await?
-// }
+    async fn make_reservation_with_yang_template(
+        pool: PgPool,
+    ) -> (Reservation, ReservationManager) {
+        make_reservation(
+            pool,
+            "yangid",
+            "Presidential-Suite",
+            "2022-12-25T15:00:00-0700",
+            "2023-1-25T12:00:00-0700",
+            "I spent all of my money so plz gives me a wonderful feeling.",
+        )
+        .await
+    }
+
+    async fn make_reservation(
+        pool: PgPool,
+        uid: &str,
+        rid: &str,
+        start: &str,
+        end: &str,
+        note: &str,
+    ) -> (Reservation, ReservationManager) {
+        let manager = ReservationManager::new(pool.clone());
+        let rsvp = abi::Reservation::new_pending(
+            uid,
+            rid,
+            start.parse().unwrap(),
+            end.parse().unwrap(),
+            note,
+        );
+
+        (manager.reserve(rsvp).await.unwrap(), manager)
+    }
+}

@@ -36,8 +36,8 @@ impl FromStr for ReservationConflictInfo {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReservationConflict {
-    pub a: ReservationWindow,
-    pub b: ReservationWindow,
+    pub new: ReservationWindow,
+    pub old: ReservationWindow,
 }
 
 impl FromStr for ReservationConflict {
@@ -49,8 +49,8 @@ impl FromStr for ReservationConflict {
 }
 
 pub struct ParsedInfo {
-    a: HashMap<String, String>,
-    b: HashMap<String, String>,
+    new: HashMap<String, String>,
+    old: HashMap<String, String>,
 }
 
 impl FromStr for ParsedInfo {
@@ -90,8 +90,8 @@ impl FromStr for ParsedInfo {
             .and_then(|mut collected_maps| {
                 if collected_maps.len() == 2 {
                     Ok(ParsedInfo {
-                        a: collected_maps[0].take().unwrap(), // //! 這邊會使用take()來取出item並把vec_maps中的item設為None
-                        b: collected_maps[1].take().unwrap(), // //! 原本使用clone()，但複製HashMap是不必要的，所以改用take()
+                        new: collected_maps[0].take().unwrap(), // //! 這邊會使用take()來取出item並把vec_maps中的item設為None
+                        old: collected_maps[1].take().unwrap(), // //! 原本使用clone()，但複製HashMap是不必要的，所以改用take()
                     })
                 } else {
                     Err(Error::ParsedFailed)
@@ -107,8 +107,8 @@ impl TryFrom<ParsedInfo> for ReservationConflict {
 
     fn try_from(info: ParsedInfo) -> Result<Self, Self::Error> {
         Ok(Self {
-            a: info.a.try_into()?,
-            b: info.b.try_into()?,
+            new: info.new.try_into()?,
+            old: info.old.try_into()?,
         })
     }
 }
@@ -167,14 +167,14 @@ mod tests {
     #[test]
     fn parsed_info_should_work() {
         let info: ParsedInfo = ERR_MSG.parse().unwrap();
-        assert_eq!(info.a["resource_id"], "ocean-view-room-713");
+        assert_eq!(info.new["resource_id"], "ocean-view-room-713");
         assert_eq!(
-            info.a["timespan"],
+            info.new["timespan"],
             "\"2022-12-26 22:00:00+00\",\"2022-12-30 19:00:00+00\""
         );
-        assert_eq!(info.b["resource_id"], "ocean-view-room-713");
+        assert_eq!(info.old["resource_id"], "ocean-view-room-713");
         assert_eq!(
-            info.b["timespan"],
+            info.old["timespan"],
             "\"2022-12-25 22:00:00+00\",\"2022-12-28 19:00:00+00\""
         );
     }
@@ -198,12 +198,12 @@ mod tests {
         let info: ReservationConflictInfo = ERR_MSG.parse().unwrap();
         match info {
             ReservationConflictInfo::Parsed(conflict) => {
-                assert_eq!(conflict.a.rid, "ocean-view-room-713");
-                assert_eq!(conflict.a.start.to_rfc3339(), "2022-12-26T22:00:00+00:00");
-                assert_eq!(conflict.a.end.to_rfc3339(), "2022-12-30T19:00:00+00:00");
-                assert_eq!(conflict.b.rid, "ocean-view-room-713");
-                assert_eq!(conflict.b.start.to_rfc3339(), "2022-12-25T22:00:00+00:00");
-                assert_eq!(conflict.b.end.to_rfc3339(), "2022-12-28T19:00:00+00:00");
+                assert_eq!(conflict.new.rid, "ocean-view-room-713");
+                assert_eq!(conflict.new.start.to_rfc3339(), "2022-12-26T22:00:00+00:00");
+                assert_eq!(conflict.new.end.to_rfc3339(), "2022-12-30T19:00:00+00:00");
+                assert_eq!(conflict.old.rid, "ocean-view-room-713");
+                assert_eq!(conflict.old.start.to_rfc3339(), "2022-12-25T22:00:00+00:00");
+                assert_eq!(conflict.old.end.to_rfc3339(), "2022-12-28T19:00:00+00:00");
             }
             ReservationConflictInfo::Unparsed(_) => panic!("should be parsed"),
         }

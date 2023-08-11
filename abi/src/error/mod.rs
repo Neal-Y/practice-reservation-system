@@ -47,6 +47,7 @@ impl From<sqlx::Error> for Error {
                     _ => Error::DbError(sqlx::Error::Database(e)),
                 }
             }
+            sqlx::Error::RowNotFound => Error::NotFound,
             _ => Error::DbError(e),
         }
     }
