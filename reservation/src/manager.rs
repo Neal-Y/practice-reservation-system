@@ -1,4 +1,4 @@
-use abi::Error;
+use abi::{Error, Validator};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{postgres::types::PgRange, types::Uuid, PgPool, Row};
@@ -14,7 +14,7 @@ impl Rsvp for ReservationManager {
         let status = abi::ReservationStatus::from_i32(rsvp.status)
             .unwrap_or(abi::ReservationStatus::Pending);
 
-        let timespan: PgRange<DateTime<Utc>> = rsvp.get_timestamp().into();
+        let timespan: PgRange<DateTime<Utc>> = rsvp.get_timestamp();
 
         let id:Uuid = sqlx::query(
             "INSERT INTO rsvp.reservations (user_id, resource_id, timespan, note, status) VALUES ($1, $2, $3, $4, $5::rsvp.reservation_status) RETURNING id"
@@ -83,11 +83,25 @@ impl Rsvp for ReservationManager {
         Ok(rsvp)
     }
 
-    async fn query(
-        &self,
-        _query_id: abi::ReservationQuery,
-    ) -> Result<Vec<abi::Reservation>, Error> {
-        todo!()
+    async fn query(&self, query: abi::ReservationQuery) -> Result<Vec<abi::Reservation>, Error> {
+        let user_id = str_to_option(&query.user_id);
+        let resource_id = str_to_option(&query.resource_id);
+        let range = query.get_timespan();
+        let status = abi::ReservationStatus::from_i32(query.status)
+            .unwrap_or(abi::ReservationStatus::Pending);
+        let rsvps = sqlx::query_as(
+            "select * from rsvp.query($1, $2, $3, $4::rsvp.reservation_status, $5, $6, $7)",
+        )
+        .bind(user_id)
+        .bind(resource_id)
+        .bind(range)
+        .bind(status.to_string())
+        .bind(query.page)
+        .bind(query.desc)
+        .bind(query.page_size)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rsvps)
     }
 }
 
@@ -97,10 +111,21 @@ impl ReservationManager {
     }
 } // 創建一個新的 ReservationManager 實例，並將傳入的 pool 綁定到這個實例上。
 
+fn str_to_option(s: &str) -> Option<&str> {
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
-    use abi::{Reservation, ReservationConflict, ReservationConflictInfo, ReservationWindow};
+    use abi::{
+        Reservation, ReservationConflict, ReservationConflictInfo, ReservationQuery,
+        ReservationWindow,
+    };
 
     use super::*;
 
@@ -193,6 +218,25 @@ mod tests {
         let rsvp = manager.get(rsvp.id).await.unwrap();
 
         assert_eq!(rsvp.status, abi::ReservationStatus::Pending as i32);
+    }
+
+    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
+    async fn test_query_should_return_vec_of_reservation() {
+        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
+        let query = ReservationQuery::new(
+            "yangid",
+            "Presidential-Suite",
+            "2021-11-01T15:00:00-0700".parse().unwrap(),
+            "2023-12-31T12:00:00-0700".parse().unwrap(),
+            abi::ReservationStatus::Pending,
+            1,
+            false,
+            10,
+        );
+
+        let rsvps = manager.query(query).await.unwrap();
+        assert_eq!(rsvps.len(), 1);
+        assert_eq!(rsvps[0], rsvp);
     }
 
     async fn make_reservation_with_yang_template(

@@ -86,11 +86,11 @@ message ReservationQuery {
     // end time for the reservation query, if 0, use Infinity for end time
     google.protobuf.Timestamp end = 5;
     // current page for the query
-    // int32 page = 6;
-    // // page size for the query
-    // int32 page_size = 7;
-    // // sort direction
-    // bool desc = 8;
+    int32 page = 6;
+    // page size for the query
+    int32 page_size = 7;
+    // sort direction
+    bool desc = 8;
 }
 
 // To query reservations, send a QueryRequest

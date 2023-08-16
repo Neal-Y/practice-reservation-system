@@ -145,3 +145,17 @@ Through these series of actions, I was able to effectively manage reservation co
 ### Title: fixed the unit test and refactor make_reservation function and create template reserve data.
 
 finished the first stage of the reservation system, and I'm going to start the second stage. In the first stage, I've implemented the basic functions of the reservation system, including creating reservations, querying reservations, and handling conflicts. tomorrow I'll start the second stage, which is to check protobuf to make sure query function could be easy to use, so I'm going to implement pagination for database.
+
+## 08/14
+
+### Title: add new variable to the ReservationQuery, make sure I can implement pagination for database.
+
+I discovered an issue in our database design, which made querying more cumbersome. To simplify the process, I added a new variable to the ReservationQuery, ensuring that I could implement pagination for the database. Today, I learned PL/pgSQL, a language for database programming, and began applying it to our system.
+
+In the initial stage, I introduced new variables and implemented the 'rsvp.query' functions, becoming familiar with commands such as DECLARE, BEGIN, END, CASE END, RETURN, etc. I also learned how to use the quote_literal() function to prevent SQL injection, ensuring that incoming query statements correspond only to specific variables. This work has made our database queries more accessible and secure.
+
+## 08/15
+
+### Title: finished the query() update database function sql and refactor the validator, get_timespan
+
+Today, I enhanced our protobuf by adding variables such as page, page_size, and desc for pagination purposes. I updated the database functions, got familiarized with SQL syntax, and implemented the query function. Along the way, I encountered the need to convert timestamps into PgRange timespans, prompting me to develop a dedicated function for it. Since validation was a frequent operation, I refactored it into a trait for broader usability across different .rs files. I also modularized the common checks for valid timespans, moving them to mod.rs. After a brief refactoring, I finished the query() function and wrote the corresponding tests.

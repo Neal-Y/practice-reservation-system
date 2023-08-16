@@ -4,12 +4,11 @@ use sqlx::{
     types::Uuid,
     FromRow, Row,
 };
-use std::ops::{Bound, Range};
+use std::ops::Bound;
 
 use crate::{
-    types::reservation_status::RsvpStatus,
-    utils::{convert_time_to_utc, convert_to_timestamp},
-    Error, Reservation, ReservationStatus,
+    convert_timestamp_into_timespan_pgrange, types::reservation_status::RsvpStatus,
+    utils::convert_to_timestamp, validate_range, Error, Reservation, ReservationStatus, Validator,
 };
 
 impl Reservation {
@@ -31,32 +30,11 @@ impl Reservation {
         }
     }
 
-    pub fn validate(&self) -> Result<(), Error> {
-        if self.start.is_none() || self.end.is_none() {
-            return Err(Error::InvalidTime);
-        }
-
-        if self.user_id.is_empty() {
-            return Err(Error::InvalidUserId(self.user_id.clone()));
-        }
-
-        if self.resource_id.is_empty() {
-            return Err(Error::InvalidResourceId(self.resource_id.clone()));
-        }
-        let start = convert_time_to_utc(self.start.as_ref().unwrap().clone());
-        let end = convert_time_to_utc(self.end.as_ref().unwrap().clone());
-
-        if start >= end {
-            return Err(Error::InvalidTime);
-        }
-
-        Ok(())
-    }
-
-    pub fn get_timestamp(&self) -> Range<DateTime<Utc>> {
-        let start = convert_time_to_utc(self.start.as_ref().unwrap().clone());
-        let end = convert_time_to_utc(self.end.as_ref().unwrap().clone());
-        Range { start, end }
+    pub fn get_timestamp(&self) -> PgRange<DateTime<Utc>> {
+        convert_timestamp_into_timespan_pgrange(
+            Some(self.start.as_ref().unwrap()),
+            Some(self.end.as_ref().unwrap()),
+        )
     }
 }
 
@@ -100,5 +78,23 @@ impl<T> From<PgRange<T>> for NativeRange<T> {
         let end = f(range.end);
 
         Self { start, end }
+    }
+}
+
+impl Validator for Reservation {
+    fn validate(&self) -> Result<(), Error> {
+        if self.user_id.is_empty() {
+            return Err(Error::InvalidUserId(self.user_id.clone()));
+        }
+
+        if self.resource_id.is_empty() {
+            return Err(Error::InvalidResourceId(self.resource_id.clone()));
+        }
+
+        validate_range(
+            Some(self.start.as_ref().unwrap()),
+            Some(self.end.as_ref().unwrap()),
+        )?;
+        Ok(())
     }
 }
