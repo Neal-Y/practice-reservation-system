@@ -14,5 +14,6 @@ thiserror = "1.0.44"
 
 
 [dev-dependencies]
+prost-types = "0.11.9"
 sqlx-database-tester = { version = "0.4.2", features = ["runtime-tokio"] }
 tokio = { version = "1.29.1", features = ["full"] }

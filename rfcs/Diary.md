@@ -159,3 +159,9 @@ In the initial stage, I introduced new variables and implemented the 'rsvp.query
 ### Title: finished the query() update database function sql and refactor the validator, get_timespan
 
 Today, I enhanced our protobuf by adding variables such as page, page_size, and desc for pagination purposes. I updated the database functions, got familiarized with SQL syntax, and implemented the query function. Along the way, I encountered the need to convert timestamps into PgRange timespans, prompting me to develop a dedicated function for it. Since validation was a frequent operation, I refactored it into a trait for broader usability across different .rs files. I also modularized the common checks for valid timespans, moving them to mod.rs. After a brief refactoring, I finished the query() function and wrote the corresponding tests.
+
+## 08/16
+
+### Title: familiar with builder pattern and wrote testcase for query function
+
+Today, I refactored the ReservationQuery's new() method using the Builder design pattern. The previous version had too many parameters, which not only failed Clippy's checks but also felt uncomfortable to write. I employed the derive_builder crate to craft such a comprehensive function. While working on the tags, I found repetitive patterns, prompting me to use traits for modularity. After ensuring the previous tests passed, I added more tests for the query() function. I noticed that in Rust, both page and page_size are i32 types with a default value of 0. If unspecified, this leads to errors. So, I decided to handle this at the database layer to avoid any conflicts, regardless of the input. Finally, I tested functions related to PgRange.

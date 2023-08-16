@@ -221,3 +221,43 @@ impl PartialEq for Error {
 }
 ```
 通過明確地比較每個變體的內部值，而不是再次呼叫枚舉的eq方法，例如，假設`InvalidResourceId`變體內部存儲的是`String`類型，那麼`v1 == v2`將呼叫String的`PartialEq`方法，而不是自定義的Error枚舉的PartialEq方法。這就避免了無窮遞迴的問題，因為它不會再次進入Error枚舉的PartialEq實現。
+
+## ERROR：rust interactive with database has some type errors
+### Describe:
+這是當我想要明明有在database中的參數列表預設page、page_size為1、10，但是當我進行rust端的testcase時，並且在我沒有給值的情況下，發現rust在進行query並不會將我原本寫好在database中的預設值帶入，導致我在測試test_query_should_return_vec_of_reservation發生以下錯誤：
+```rust
+ReservationQuery { resource_id: "", user_id: "yangid", status: Pending, start: Some(Timestamp { seconds: 1635750000, nanos: 0 }), end: Some(Timestamp { seconds: 1703995200, nanos: 0 }), page: 0, page_size: 0, desc: false }
+test manager::tests::test_query_should_return_vec_of_reservation ... FAILED
+```
+
+## Error Analysis
+
+關於page和page_size的預設值問題，我注意到在ReservationQuery結構中這兩個字段都有一個#[builder(setter(into), default)]屬性。這意味著，如果在構建此結構時沒有明確設置這兩個字段的值，它們將採用`預設值`。Rust中的i32型別的預設值為`0`。
+因為：
+```rust
+    /// current page for the query
+    #[prost(int32, tag = "6")]
+    #[builder(setter(into), default)]
+    pub page: i32,
+    /// page size for the query
+    #[prost(int32, tag = "7")]
+    #[builder(setter(into), default)]
+    pub page_size: i32,
+```
+
+所以，當我使用ReservationQueryBuilder::default()來創建一個新的查詢時，page和page_size的值都將為0，除非我明確地設置了它們的值。
+
+## Solution
+
+我在rust query進入資料庫調用query函數的時候直接給予page和page_size預設值的判斷，像是：
+```sql
+    -- if page_size is not between 10 and 100, set it to 10
+    IF page_size < 10 OR page_size > 100 THEN
+        page_size := 10;
+    END IF;
+    -- if page is less than 1, set it to 1
+    IF page < 1 THEN
+        page := 1;
+    END IF;
+```
+就可以完美解決。

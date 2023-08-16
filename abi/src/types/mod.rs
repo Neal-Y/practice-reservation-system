@@ -35,3 +35,72 @@ pub fn convert_timestamp_into_timespan_pgrange(
         end: std::ops::Bound::Excluded(end),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_range() {
+        let start = Timestamp {
+            seconds: 0,
+            nanos: 0,
+        };
+        let end = Timestamp {
+            seconds: 1,
+            nanos: 0,
+        };
+        assert!(validate_range(Some(&start), Some(&end)).is_ok());
+
+        let start = Timestamp {
+            seconds: 1,
+            nanos: 0,
+        };
+        let end = Timestamp {
+            seconds: 0,
+            nanos: 0,
+        };
+        assert!(validate_range(Some(&start), Some(&end)).is_err());
+
+        let start = Timestamp {
+            seconds: 0,
+            nanos: 0,
+        };
+        let end = Timestamp {
+            seconds: 0,
+            nanos: 0,
+        };
+        assert!(validate_range(Some(&start), Some(&end)).is_err());
+
+        let start = Timestamp {
+            seconds: 0,
+            nanos: 1,
+        };
+        let end = Timestamp {
+            seconds: 0,
+            nanos: 0,
+        };
+        assert!(validate_range(Some(&start), Some(&end)).is_err());
+    }
+
+    #[test]
+    fn test_convert_timestamp_into_timespan_pgrange() {
+        let start = Timestamp {
+            seconds: 0,
+            nanos: 0,
+        };
+        let end = Timestamp {
+            seconds: 1,
+            nanos: 0,
+        };
+        let range = convert_timestamp_into_timespan_pgrange(Some(&start), Some(&end));
+        assert_eq!(
+            range.start,
+            std::ops::Bound::Included(convert_time_to_utc(start))
+        );
+        assert_eq!(
+            range.end,
+            std::ops::Bound::Excluded(convert_time_to_utc(end))
+        );
+    }
+}
