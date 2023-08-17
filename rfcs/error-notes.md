@@ -261,3 +261,19 @@ test manager::tests::test_query_should_return_vec_of_reservation ... FAILED
     END IF;
 ```
 就可以完美解決。
+
+## ERROR： during the search database has performance's problem
+### Describe:
+當我在使用query function 進行pagination search data的時候，我發現由於使用`Limit`跟`Offset`進行查詢的時候，會將整個資料庫的資料都撈出來，然後再進行分頁，這樣的效能是非常差的。
+
+## Error Analysis
+
+使用OFFSET和LIMIT進行深分頁（即頁碼很大的情況）可能會對資料庫效能造成嚴重影響。以下是這種方法的主要問題：
+
+- 過度掃描：正如剛剛提到的，當使用大的OFFSET值時，資料庫必須先掃描並跳過指定數量的紀錄，然後再返回所需的紀錄。這意味著資料庫實際上已經`掃描了比最終結果更多的紀錄`。隨著OFFSET值的增加，這種情況會變得更糟。
+
+- 不一致性：使用OFFSET和LIMIT進行分頁可能會導致重複或遺失的紀錄，特別是當資料正在被更新或插入時。
+
+- 難以維護：隨著數據量的增長，分頁的效能會進一步下降。
+
+## Solution

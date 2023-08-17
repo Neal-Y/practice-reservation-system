@@ -60,6 +60,8 @@ BEGIN
             WHEN is_desc THEN 'DESC'
             ELSE 'ASC'
         END,
+        -- if page_size is default 10, I want to check the page 3, it will be (3 - 1) * 10 = 20,
+        -- in the other words, database will offset the first 20 items.
         page_size,
         (page - 1) * page_size
     );

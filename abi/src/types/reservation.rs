@@ -1,7 +1,6 @@
 use chrono::{DateTime, FixedOffset, Utc};
 use sqlx::{
     postgres::{types::PgRange, PgRow},
-    types::Uuid,
     FromRow, Row,
 };
 use std::ops::Bound;
@@ -20,7 +19,7 @@ impl Reservation {
         note: impl Into<String>,
     ) -> Self {
         Self {
-            id: "".to_string(),
+            id: 0,
             user_id: uid.into(),
             status: ReservationStatus::Pending as i32,
             resource_id: rid.into(),
@@ -48,7 +47,7 @@ impl FromRow<'_, PgRow> for Reservation {
         let end = range.end.unwrap();
 
         Ok(Self {
-            id: row.get::<Uuid, _>("id").to_string(),
+            id: row.get::<i64, _>("id"),
             user_id: row.get("user_id"),
             resource_id: row.get("resource_id"),
             start: Some(convert_to_timestamp(start)),

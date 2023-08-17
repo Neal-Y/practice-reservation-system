@@ -1,10 +1,9 @@
-use abi::{Error, Validator};
+use abi::{Error, ReservationId, Validator};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::{postgres::types::PgRange, types::Uuid, PgPool, Row};
-use std::str::FromStr;
+use sqlx::{postgres::types::PgRange, PgPool, Row};
 
-use crate::{ReservationId, ReservationManager, Rsvp};
+use crate::{ReservationManager, Rsvp};
 
 #[async_trait]
 impl Rsvp for ReservationManager {
@@ -16,7 +15,7 @@ impl Rsvp for ReservationManager {
 
         let timespan: PgRange<DateTime<Utc>> = rsvp.get_timestamp();
 
-        let id:Uuid = sqlx::query(
+        let id:i64 = sqlx::query(
             "INSERT INTO rsvp.reservations (user_id, resource_id, timespan, note, status) VALUES ($1, $2, $3, $4, $5::rsvp.reservation_status) RETURNING id"
         )
         .bind(rsvp.user_id.clone())
@@ -27,7 +26,7 @@ impl Rsvp for ReservationManager {
         .fetch_one(&self.pool)
         .await?.get(0);
 
-        rsvp.id = id.to_string();
+        rsvp.id = id;
 
         Ok(rsvp)
     }
@@ -35,7 +34,9 @@ impl Rsvp for ReservationManager {
     // change reservation status
     async fn change_status(&self, id: ReservationId) -> Result<abi::Reservation, Error> {
         // error: code: "42883", message: "operator does not exist: uuid = text"，所以轉Uuid進去查詢語句。
-        let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
+        // let id: Uuid = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
+
+        id.validate()?;
 
         // if current status is pending, change status into confirmed, otherwise do nothing
         let rsvp = sqlx::query_as("UPDATE rsvp.reservations SET status = 'confirmed' WHERE id = $1 AND status = 'pending' RETURNING *
@@ -53,7 +54,10 @@ impl Rsvp for ReservationManager {
         id: ReservationId,
         note: String,
     ) -> Result<abi::Reservation, Error> {
-        let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
+        // let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
+
+        id.validate()?;
+
         let rsvp =
             sqlx::query_as("UPDATE rsvp.reservations SET note = $1 WHERE id = $2 RETURNING *")
                 .bind(note)
@@ -65,7 +69,10 @@ impl Rsvp for ReservationManager {
 
     // delete reservation
     async fn delete(&self, id: ReservationId) -> Result<(), Error> {
-        let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
+        // let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
+
+        id.validate()?;
+
         sqlx::query("DELETE FROM rsvp.reservations WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
@@ -75,7 +82,10 @@ impl Rsvp for ReservationManager {
 
     // get reservation
     async fn get(&self, id: ReservationId) -> Result<abi::Reservation, Error> {
-        let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
+        // let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
+
+        id.validate()?;
+
         let rsvp = sqlx::query_as("SELECT * FROM rsvp.reservations WHERE id = $1")
             .bind(id)
             .fetch_one(&self.pool)
@@ -133,7 +143,7 @@ mod tests {
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
     async fn reserve_should_work_for_valid_window() {
         let (rsvp, _manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-        assert!(!rsvp.id.is_empty());
+        assert!(rsvp.id != 0);
     }
 
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
@@ -202,7 +212,7 @@ mod tests {
     #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
     async fn cancel_pending_status_should_be_cancelled() {
         let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-        manager.delete(rsvp.id.clone()).await.unwrap();
+        manager.delete(rsvp.id).await.unwrap();
         let canceled = manager.get(rsvp.id).await.unwrap_err();
 
         assert_eq!(
