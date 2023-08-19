@@ -164,4 +164,16 @@ Today, I enhanced our protobuf by adding variables such as page, page_size, and 
 
 ### Title: familiar with builder pattern and wrote testcase for query function
 
-Today, I refactored the ReservationQuery's new() method using the Builder design pattern. The previous version had too many parameters, which not only failed Clippy's checks but also felt uncomfortable to write. I employed the derive_builder crate to craft such a comprehensive function. While working on the tags, I found repetitive patterns, prompting me to use traits for modularity. After ensuring the previous tests passed, I added more tests for the query() function. I noticed that in Rust, both page and page_size are i32 types with a default value of 0. If unspecified, this leads to errors. So, I decided to handle this at the database layer to avoid any conflicts, regardless of the input. Finally, I tested functions related to PgRange.
+Today, I refactored the ReservationQuery's new() method using the Builder design pattern. The previous version had too many parameters, which not only failed Clippy's checks but also felt uncomfortable to write. I employed the `derive_builder` crate to craft such a comprehensive function. While working on the tags, I found repetitive patterns, prompting me to use traits for modularity. After ensuring the previous tests passed, I added more tests for the query() function. I noticed that in Rust, both page and page_size are i32 types with a default value of 0. If unspecified, this leads to errors. So, I decided to handle this at the database layer to avoid any conflicts, regardless of the input. Finally, I tested functions related to PgRange.
+
+## 08/17
+
+### Title: added a new variable for cursor-based searching into gRPC to enhance database filter query functionality(1)
+
+Today, I noticed a performance issue when querying our database. Using 'OFFSET' in SQL isn't efficient for large datasets since it has to go through all previous data. Instead, I'm exploring a method called 'key-set pagination'. This uses the ID as a sortable key and searches from a specific 'cursor' point using the primary key. before I take some action, I need to `dump the sql` in advance to make sure I don't do some silly things, after that, I've added parameters like 'prev' (previous), 'next', and 'is_desc' to our protobuf definition. After setting up the builder pattern to automate instance creation, I started writing the cursor logic. TO BE CONTINUED...
+
+## 08/18
+
+### Title: added a new variable for cursor-based searching into gRPC to enhance database filter query functionality(2)
+
+Today, I continued working on the cursor logic, which is a bit more complicated than I expected. I've implemented the `keyset_pagination` function, and I realized we need a struct to hold pointers for the previous and next pages. I named it 'FilterPager', which lets users know if there are preceding or succeeding pages available.

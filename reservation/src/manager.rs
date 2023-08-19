@@ -1,9 +1,12 @@
-use abi::{Error, ReservationId, Validator};
+use crate::Rsvp;
+use abi::{Error, FilterPager, ReservationId, Validator};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{postgres::types::PgRange, PgPool, Row};
 
-use crate::{ReservationManager, Rsvp};
+pub struct ReservationManager {
+    pool: PgPool, // sqlx 裡面 postgres pool database connection 使用Arc將各種database connection 分開
+}
 
 #[async_trait]
 impl Rsvp for ReservationManager {
@@ -113,6 +116,79 @@ impl Rsvp for ReservationManager {
         .await?;
         Ok(rsvps)
     }
+
+    async fn keyset_query(
+        &self,
+        filter: abi::FilterById,
+    ) -> Result<(FilterPager, Vec<abi::Reservation>), Error> {
+        let id = str_to_option(&filter.user_id);
+        let resource_id = str_to_option(&filter.resource_id);
+        let status = abi::ReservationStatus::from_i32(filter.status)
+            .unwrap_or(abi::ReservationStatus::Pending);
+        let page_size = if filter.page_size < 10 || filter.page_size > 100 {
+            10
+        } else {
+            filter.page_size
+        };
+
+        let rsvps: Vec<abi::Reservation> = sqlx::query_as(
+            "select * from rsvp.filter($1, $2, $3::rsvp.reservation_status, $4, $5, $6)",
+        )
+        .bind(id)
+        .bind(resource_id)
+        .bind(status.to_string())
+        .bind(filter.cursor)
+        .bind(filter.desc)
+        .bind(page_size)
+        .fetch_all(&self.pool)
+        .await?;
+
+        // if the first id is current cursor, then we have prev, we start from 1.
+        // for example 100 data, cursor is 50, is_desc is false, if the first id is current cursor, which means 1~49 must exist
+        // if len - start > page_size, then we have next, we end at len -1
+
+        // ----------------------------------------------------------------------------------------------
+
+        // 依照如果資料的第一筆id是目前的cursor，因為如果沒有那肯定小於cursor。
+        let has_prev_page = !rsvps.is_empty() && rsvps[0].id == filter.cursor;
+        // 並且如果有前一頁就好比11~20、21~30，那麼start就是1，只有0~10的時候初始值才是0。
+        let start = if has_prev_page { 1 } else { 0 };
+
+        // 假設start為0也就是第一頁資料，如果他有下一頁我們的LIMIT是會抓取11筆資料這樣就是11-0>10，那麼就有下一頁。
+        // 如果start為1也就是第一頁以後的，
+        let has_next_page = (rsvps.len() - start) as i32 > page_size;
+        // 因為當初有LIMIT有多取1(為了確定是否還有下一頁)，但是我們並不需要+1的值，所以設定end時就是為長度-1
+        // 如果當初沒取到也就是沒有下一頁，那麼end就是長度。
+        let end = if has_next_page {
+            rsvps.len() - 1
+        } else {
+            rsvps.len()
+        };
+
+        // set the FilterPager，-1是代表沒有下一頁或前一頁。
+        let prev = if has_prev_page {
+            rsvps[start - 1].id
+        } else {
+            -1
+        };
+        let next = if has_next_page { rsvps[end - 1].id } else { -1 };
+
+        // choose the section data
+        // TODO: optimize this to avoid use clone
+        let result = rsvps[start..end].to_vec();
+
+        let pager = FilterPager {
+            next,
+            prev,
+
+            // TODO: set the total count
+            total: 0,
+        };
+
+        Ok((pager, result))
+
+        // ----------------------------------------------------------------------------------------------
+    }
 }
 
 impl ReservationManager {
@@ -126,196 +202,5 @@ fn str_to_option(s: &str) -> Option<&str> {
         None
     } else {
         Some(s)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use abi::{
-        Reservation, ReservationConflict, ReservationConflictInfo, ReservationQueryBuilder,
-        ReservationWindow,
-    };
-    use prost_types::Timestamp;
-
-    use super::*;
-
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    async fn reserve_should_work_for_valid_window() {
-        let (rsvp, _manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-        assert!(rsvp.id != 0);
-    }
-
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    async fn reserve_conflict_should_reject() {
-        let (_rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-
-        let rsvp2 = abi::Reservation::new_pending(
-            "conflict_userId",
-            "Presidential-Suite",
-            "2022-12-26T15:00:00+0800".parse().unwrap(),
-            "2022-12-30T12:00:00+0800".parse().unwrap(),
-            "Test Conflict",
-        );
-
-        let err = manager.reserve(rsvp2).await.unwrap_err();
-
-        let info = ReservationConflictInfo::Parsed(ReservationConflict {
-            new: ReservationWindow {
-                rid: "Presidential-Suite".to_string(),
-                start: "2022-12-26T15:00:00+0800".parse().unwrap(),
-                end: "2022-12-30T12:00:00+0800".parse().unwrap(),
-            },
-
-            old: ReservationWindow {
-                rid: "Presidential-Suite".to_string(),
-                start: "2022-12-25T15:00:00+0800".parse().unwrap(),
-                end: "2023-1-25T12:00:00+0800".parse().unwrap(),
-            },
-        });
-
-        assert_eq!(err, abi::Error::ConflictReservation(info));
-    }
-
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    async fn change_pending_status_should_be_confirm() {
-        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-
-        let rsvp = manager.change_status(rsvp.id).await.unwrap();
-
-        assert_eq!(rsvp.status, abi::ReservationStatus::Confirmed as i32);
-    }
-
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    async fn status_confirmed_update_status_should_do_nothing() {
-        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-
-        let rsvp = manager.change_status(rsvp.id).await.unwrap();
-
-        // update status again
-        let rsvp = manager.change_status(rsvp.id).await.unwrap_err();
-
-        assert_eq!(rsvp, abi::Error::NotFound);
-    }
-
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    async fn update_note_should_work() {
-        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-        let rsvp = manager.update_note(
-            rsvp.id,
-            "I spent all of my money so plz gives me a wonderful feeling. I want to have a wonderful experience.".to_string(),
-        ).await.unwrap();
-
-        assert_eq!(rsvp.note, "I spent all of my money so plz gives me a wonderful feeling. I want to have a wonderful experience.");
-    }
-
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    async fn cancel_pending_status_should_be_cancelled() {
-        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-        manager.delete(rsvp.id).await.unwrap();
-        let canceled = manager.get(rsvp.id).await.unwrap_err();
-
-        assert_eq!(
-            canceled,
-            abi::Error::NotFound,
-            "Failed to delete reservation"
-        );
-    }
-
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    async fn test_getter_should_return_reservation() {
-        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-
-        let rsvp = manager.get(rsvp.id).await.unwrap();
-
-        assert_eq!(rsvp.status, abi::ReservationStatus::Pending as i32);
-    }
-
-    #[sqlx_database_tester::test(pool(variable = "migrated_pool", migrations = "../migrations"))]
-    async fn test_query_should_return_vec_of_reservation() {
-        let (rsvp, manager) = make_reservation_with_yang_template(migrated_pool.clone()).await;
-        let query = ReservationQueryBuilder::default()
-            .user_id("yangid")
-            .status(abi::ReservationStatus::Pending as i32)
-            .start("2021-11-01T15:00:00+0800".parse::<Timestamp>().unwrap())
-            .end("2023-12-31T12:00:00+0800".parse::<Timestamp>().unwrap())
-            .build()
-            .unwrap();
-
-        let rsvps = manager.query(query).await.unwrap();
-        assert_eq!(rsvps.len(), 1);
-        assert_eq!(rsvps[0], rsvp);
-
-        // if timespan is not in a range, query should return empty
-
-        let query = ReservationQueryBuilder::default()
-            .user_id("yangid")
-            .status(abi::ReservationStatus::Pending as i32)
-            .start("2020-11-01T15:00:00+0800".parse::<Timestamp>().unwrap())
-            .end("2020-12-31T12:00:00+0800".parse::<Timestamp>().unwrap())
-            .build()
-            .unwrap();
-
-        let rsvps = manager.query(query).await.unwrap();
-
-        assert!(rsvps.is_empty());
-
-        // if status not match, should return empty
-        let query = ReservationQueryBuilder::default()
-            .user_id("yangid")
-            .status(abi::ReservationStatus::Confirmed as i32)
-            .start("2021-11-01T15:00:00+0800".parse::<Timestamp>().unwrap())
-            .end("2023-12-31T12:00:00+0800".parse::<Timestamp>().unwrap())
-            .build()
-            .unwrap();
-        let response = manager.query(query).await.unwrap();
-
-        assert!(response.is_empty());
-
-        // change status should be queryable
-        manager.change_status(rsvp.id).await.unwrap();
-        let query = ReservationQueryBuilder::default()
-            .user_id("yangid")
-            .status(abi::ReservationStatus::Confirmed as i32)
-            .start("2021-11-01T15:00:00+0800".parse::<Timestamp>().unwrap())
-            .end("2023-12-31T12:00:00+0800".parse::<Timestamp>().unwrap())
-            .build()
-            .unwrap();
-        let query = manager.query(query).await.unwrap();
-        assert_eq!(query.len(), 1);
-    }
-
-    async fn make_reservation_with_yang_template(
-        pool: PgPool,
-    ) -> (Reservation, ReservationManager) {
-        make_reservation(
-            pool,
-            "yangid",
-            "Presidential-Suite",
-            "2022-12-25T15:00:00+0800",
-            "2023-1-25T12:00:00+0800",
-            "I spent all of my money so plz gives me a wonderful feeling.",
-        )
-        .await
-    }
-
-    async fn make_reservation(
-        pool: PgPool,
-        uid: &str,
-        rid: &str,
-        start: &str,
-        end: &str,
-        note: &str,
-    ) -> (Reservation, ReservationManager) {
-        let manager = ReservationManager::new(pool.clone());
-        let rsvp = abi::Reservation::new_pending(
-            uid,
-            rid,
-            start.parse().unwrap(),
-            end.parse().unwrap(),
-            note,
-        );
-
-        (manager.reserve(rsvp).await.unwrap(), manager)
     }
 }

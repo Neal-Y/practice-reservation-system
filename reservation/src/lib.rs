@@ -1,13 +1,9 @@
 mod manager;
+mod tests;
 
-use abi::Error;
+use abi::{Error, FilterPager};
 use async_trait::async_trait;
-
-use sqlx::PgPool;
-
-pub struct ReservationManager {
-    pool: PgPool, // sqlx 裡面 postgres pool database connection 使用Arc將各種database connection 分開
-}
+pub use manager::ReservationManager;
 
 #[async_trait]
 pub(crate) trait Rsvp {
@@ -27,4 +23,9 @@ pub(crate) trait Rsvp {
     async fn get(&self, id: abi::ReservationId) -> Result<abi::Reservation, Error>;
     // get user's all reservation
     async fn query(&self, query_id: abi::ReservationQuery) -> Result<Vec<abi::Reservation>, Error>;
+    // query reservation order by reservation id
+    async fn keyset_query(
+        &self,
+        filter: abi::FilterById,
+    ) -> Result<(FilterPager, Vec<abi::Reservation>), Error>;
 }

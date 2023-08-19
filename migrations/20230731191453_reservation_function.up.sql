@@ -73,3 +73,62 @@ BEGIN
     RETURN QUERY EXECUTE _sql;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION rsvp.filter(
+    uid text,
+    rid text,
+    status rsvp.reservation_status,
+    cursor bigint DEFAULT null,
+    is_desc bool DEFAULT FALSE,
+    page_size integer DEFAULT 10
+) RETURNS TABLE (LIKE rsvp.reservations) AS $$
+DECLARE
+    _sql text;
+BEGIN
+    -- if the cursor is null, set it to 0, if is_desc is false, or to 2^64 - 1 if is_desc is true
+    -- initialize the cursor
+    IF cursor IS NULL OR cursor < 0 THEN
+        IF is_desc THEN
+            cursor := 9223372036854775807;
+        ELSE
+            cursor := 0;
+        END IF;
+    END IF;
+
+    -- if page_size is not between 10 and 100, set it to 10
+    IF page_size < 10 OR page_size > 100 THEN
+        page_size := 10;
+    END IF;
+
+    -- format the query based on parameters
+    _sql := format(
+        'SELECT * FROM rsvp.reservations WHERE %s AND status = %L AND %s ORDER BY id %s LIMIT %L::integer',
+        -- 確保當降序排列時如果id<=cursor代表還有下一頁就是有其他比他小的id沒有的話就塞false給sql語句讓其失敗，而升序則反之
+        CASE
+            WHEN is_desc THEN 'id <= ' || cursor
+            ELSE 'id >= ' || cursor
+        END,
+        status,
+        CASE
+            WHEN uid IS NULL AND rid IS NULL THEN 'TRUE'
+            WHEN uid IS NULL THEN 'resource_id = ' || quote_literal(rid)
+            WHEN rid IS NULL THEN 'user_id = ' || quote_literal(uid)
+            ELSE 'user_id = ' || quote_literal(uid) || ' AND resource_id = ' || quote_literal(rid)
+        END,
+        CASE
+            WHEN is_desc THEN 'DESC'
+            ELSE 'ASC'
+        END,
+        -- if page_size is default 10, I want to check the page 3, it will be (3 - 1) * 10 = 20,
+        -- in the other words, database will offset the first 20 items.
+        page_size + 1
+    );
+
+    -- log the sql
+    RAISE NOTICE '%', _sql;
+
+    -- execute the query
+    RETURN QUERY EXECUTE _sql;
+END;
+$$ LANGUAGE plpgsql;

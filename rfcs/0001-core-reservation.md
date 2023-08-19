@@ -224,3 +224,7 @@ TODO: refactor this zone
 ## Future possibilities
 
 TBD
+
+## mock questions
+
+- [為何使用protobuffer](mock_questions_notes/why_protobuf.md)

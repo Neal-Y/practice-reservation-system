@@ -277,3 +277,5 @@ test manager::tests::test_query_should_return_vec_of_reservation ... FAILED
 - 難以維護：隨著數據量的增長，分頁的效能會進一步下降。
 
 ## Solution
+
+使用cursor以及相關演算法來解決這個問題，我在這裡使用了`keyset pagination`，這是一種基於資料庫索引的分頁方法。它使用資料庫索引中的值來決定下一頁的起始點，而不是使用OFFSET。這種方法的好處是，它可以保證分頁的效能不會隨著數據量的增長而下降。
