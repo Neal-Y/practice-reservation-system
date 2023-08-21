@@ -10,6 +10,12 @@ pub enum Error {
     #[error("pending was confirmed")]
     NotFound,
 
+    #[error("failed to parse config file")]
+    FailedToParse,
+
+    #[error("failed to read file")]
+    FailedToRead,
+
     #[error("database error")]
     DbError(sqlx::Error),
 

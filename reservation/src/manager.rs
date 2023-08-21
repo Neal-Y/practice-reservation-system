@@ -1,8 +1,11 @@
 use crate::Rsvp;
-use abi::{Error, FilterPager, ReservationId, Validator};
+use abi::{DbConfig, Error, FilterPager, ReservationId, Validator};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::{postgres::types::PgRange, PgPool, Row};
+use sqlx::{
+    postgres::{types::PgRange, PgPoolOptions},
+    PgPool, Row,
+};
 
 pub struct ReservationManager {
     pool: PgPool, // sqlx 裡面 postgres pool database connection 使用Arc將各種database connection 分開
@@ -192,10 +195,21 @@ impl Rsvp for ReservationManager {
 }
 
 impl ReservationManager {
+    // 創建一個新的 ReservationManager 實例，並將傳入的 pool 綁定到這個實例上。
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
-} // 創建一個新的 ReservationManager 實例，並將傳入的 pool 綁定到這個實例上。
+
+    // 從 config 裡面取得資料庫的連線資訊，並且建立一個新的 ReservationManager 實例。
+    pub async fn from_config(config: &DbConfig) -> Result<Self, abi::Error> {
+        let url = config.url();
+        let pool = PgPoolOptions::default()
+            .max_connections(config.max_connections)
+            .connect(&url)
+            .await?;
+        Ok(Self::new(pool))
+    }
+}
 
 fn str_to_option(s: &str) -> Option<&str> {
     if s.is_empty() {

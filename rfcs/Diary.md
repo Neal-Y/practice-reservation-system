@@ -177,3 +177,21 @@ Today, I noticed a performance issue when querying our database. Using 'OFFSET' 
 ### Title: added a new variable for cursor-based searching into gRPC to enhance database filter query functionality(2)
 
 Today, I continued working on the cursor logic, which is a bit more complicated than I expected. I've implemented the `keyset_pagination` function, and I realized we need a struct to hold pointers for the previous and next pages. I named it 'FilterPager', which lets users know if there are preceding or succeeding pages available.
+
+## 08/19
+
+### Title: review the keyset pagination
+
+Today, I reviewed the keyset pagination and found that the previous implementation was incorrect. I've fixed the issue and added more tests to ensure the correctness of the code.
+
+## 08/21
+
+### Title: use tonic to combine that I crated function about reservation to gRPC(pre-configuration)
+
+In the past few days, I've nearly completed the core functions of 'reservation'. Now, the goal is to integrate these features with the 'service' binary to form a gRPC interface. My first step was to implement the features defined in the protobuf's 'ReservationService' trait within the service. During this process, I realized I needed some configurations. So, I created 'config.rs' to manage 'DbConfig' and 'ServerConfig', wrapping them in a 'Config' for upcoming tasks like 'reserve', 'confirm', 'update', and more. I also wrote unit tests to ensure my config functions properly read the .yml files. Now, I'm diving into the main implementation. To be continued...
+
+## 08/22
+
+### Title: implement service main function
+
+- [ ] TODO: 就是在service做輸入和輸出，輸入成我們內部需要的參數和類型，並且接收回來處理後的資料，再轉換成gRPC的格式輸出。
