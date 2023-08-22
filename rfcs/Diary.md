@@ -194,4 +194,5 @@ In the past few days, I've nearly completed the core functions of 'reservation'.
 
 ### Title: implement service main function
 
-- [ ] TODO: 就是在service做輸入和輸出，輸入成我們內部需要的參數和類型，並且接收回來處理後的資料，再轉換成gRPC的格式輸出。
+- [x] TODO: 就是在service做輸入和輸出，輸入成我們內部需要的參數和類型，並且接收回來處理後的資料，再轉換成gRPC的格式輸出。
+I'm feeling a bit under the weather today. I'll lay out the details tomorrow. In short, I've implemented the core functions, and now I'm exposing them through a gRPC interface. Next, I'll set up a server to listen to incoming requests and respond accordingly.
