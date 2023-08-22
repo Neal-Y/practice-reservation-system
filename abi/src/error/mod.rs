@@ -75,3 +75,29 @@ impl PartialEq for Error {
         }
     }
 }
+
+impl From<crate::Error> for tonic::Status {
+    fn from(e: crate::Error) -> Self {
+        match e {
+            crate::Error::NotFound => tonic::Status::not_found("not found"),
+            crate::Error::InvalidTime => tonic::Status::invalid_argument("invalid time"),
+            crate::Error::InvalidUserId(v) => {
+                tonic::Status::invalid_argument(format!("invalid user id: {}", v))
+            }
+            crate::Error::InvalidReservationId(v) => {
+                tonic::Status::invalid_argument(format!("invalid reservation id: {}", v))
+            }
+            crate::Error::ConflictReservation(v) => {
+                tonic::Status::failed_precondition(format!("conflict reservation: {:?}", v))
+            }
+            crate::Error::InvalidResourceId(v) => {
+                tonic::Status::invalid_argument(format!("invalid resource id: {}", v))
+            }
+            crate::Error::ParsedFailed => tonic::Status::unknown("parsed failed"),
+            crate::Error::FailedToParse => tonic::Status::unknown("failed to parse"),
+            crate::Error::FailedToRead => tonic::Status::unknown("failed to read"),
+            crate::Error::DbError(e) => tonic::Status::internal(format!("Database error: {}", e)),
+            crate::Error::Unknown => tonic::Status::unknown("unknown"),
+        }
+    }
+}

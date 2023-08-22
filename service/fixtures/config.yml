@@ -5,6 +5,6 @@ db:
   user: shin
   password:
   dbname: reservation
-sever:
+server:
   host: localhost
   port: 8080

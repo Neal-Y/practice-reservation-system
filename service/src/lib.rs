@@ -1,3 +1,7 @@
+//? 在這層我只需要將原本寫好的reservation的核心功能將他們與grpc的api串接起來，做簡單的IO處理，這樣就是對外的gRPC interface了
+//? 把吃進來的protobuf定義的資料轉成reservation core的資料再將他們輸出出去即可
+//? 輸入->校驗->轉換(required args by reservation core)->處理->轉換(gRPC interface)->輸出
+
 use abi::{
     reservation_service_server::ReservationService, CancelRequest, CancelResponse, ConfirmRequest,
     ConfirmResponse, FilterRequest, FilterResponse, GetRequest, GetResponse, ListenRequest,
@@ -5,17 +9,21 @@ use abi::{
 };
 use abi::{Config, Reservation};
 use futures::Stream;
-use reservation::ReservationManager;
+use reservation::{ReservationManager, Rsvp};
 use std::pin::Pin;
 use tonic::{async_trait, Request, Response, Status};
 
-type ReservationStream = Pin<Box<dyn Stream<Item = Result<Reservation, Status>> + Send + 'static>>;
+type ReservationStream = Pin<Box<dyn Stream<Item = Result<Reservation, Status>> + Send>>;
 
-pub struct RsvpService(ReservationManager);
+pub struct RsvpService {
+    manager: ReservationManager,
+}
 
 impl RsvpService {
-    pub async fn new(config: Config) -> Result<Self, anyhow::Error> {
-        Ok(Self(ReservationManager::from_config(&config.db).await?))
+    pub async fn from_config(config: &Config) -> Result<Self, anyhow::Error> {
+        Ok(Self {
+            manager: ReservationManager::from_config(&config.db).await?,
+        })
     }
 }
 
@@ -24,9 +32,16 @@ impl ReservationService for RsvpService {
     /// make a reservation
     async fn reserve(
         &self,
-        _request: Request<ReserveRequest>,
+        request: Request<ReserveRequest>,
     ) -> std::result::Result<Response<ReserveResponse>, Status> {
-        todo!()
+        let request = request.into_inner();
+        if request.reservation.is_none() {
+            return Err(Status::invalid_argument("reservation is required"));
+        }
+        let reservation = self.manager.reserve(request.reservation.unwrap()).await?;
+        Ok(Response::new(ReserveResponse {
+            reservation: Some(reservation),
+        }))
     }
     /// confirm a pending reservation, if reservation is not pending, do nothing
     async fn confirm(

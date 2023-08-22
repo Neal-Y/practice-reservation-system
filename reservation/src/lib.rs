@@ -6,7 +6,7 @@ use async_trait::async_trait;
 pub use manager::ReservationManager;
 
 #[async_trait]
-pub(crate) trait Rsvp {
+pub trait Rsvp {
     // make a reservation
     async fn reserve(&self, rsvp: abi::Reservation) -> Result<abi::Reservation, Error>;
     // change reservation status

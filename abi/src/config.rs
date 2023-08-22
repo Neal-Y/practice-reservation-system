@@ -5,7 +5,7 @@ use std::fs;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
     pub db: DbConfig,
-    pub sever: SeverConfig,
+    pub server: SeverConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -71,7 +71,7 @@ mod tests {
                     dbname: "reservation".to_string(),
                     max_connections: 5
                 },
-                sever: SeverConfig {
+                server: SeverConfig {
                     host: "localhost".to_string(),
                     port: 8080
                 }
