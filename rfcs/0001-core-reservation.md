@@ -20,6 +20,8 @@
 
 - Core Logic： 使用db connection pool對sqlx搭建的資料庫進行連接和確認。
 
+- [架構描述](mock_questions_notes/architecture.md)
+
 ### Service interface
 
 I want try to use gRPC interface to make connection with real world. let me familiar with this interface.
