@@ -202,7 +202,7 @@ impl ReservationManager {
 
     // 從 config 裡面取得資料庫的連線資訊，並且建立一個新的 ReservationManager 實例。
     pub async fn from_config(config: &DbConfig) -> Result<Self, abi::Error> {
-        let url = config.url();
+        let url = config.database_url();
         let pool = PgPoolOptions::default()
             .max_connections(config.max_connections)
             .connect(&url)

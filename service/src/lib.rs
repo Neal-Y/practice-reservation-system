@@ -1,4 +1,5 @@
 mod service;
+mod tests;
 
 use abi::Reservation;
 use futures::Stream;

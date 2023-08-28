@@ -203,3 +203,9 @@ I'm feeling a bit under the weather today. I'll lay out the details tomorrow. In
 ### Title: chill out
 
 I updated the code to have a more adaptable path and added documentation. Then, to make 'service/lib.rs' clearer, I split the implementation from the structure, placing them in 'service.rs' and 'lib.rs'.
+
+## 08/28
+
+### Title: calm down to think about how can I deal with the gRPC server interface's integration tests
+
+Today, I finally clarified A TEST(ONE) that took me a while to understand. I began by diving deep into what 'runtime' is. Then, I pondered how to implement a synchronous 'Drop Trait' to drop an asynchronous database. However, I later chose a more direct approach. When testing, I first connected to the server and created a test database. Next, I connected to this database using its URL. This was followed by a series of gRPC server tests. After testing, it was important to drop the test database. But before doing so, I ensured all connections were closed.

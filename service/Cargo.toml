@@ -13,3 +13,7 @@ reservation = { version = "0.1.0", path = "../reservation" }
 shellexpand = "3.1.0"
 tokio = { version = "1.32.0", features = ["full"] }
 tonic = { version = "0.9.2", features = ["gzip", "tls"] }
+
+[dev-dependencies]
+sqlx = { version = "0.7.0", features = ["runtime-tokio-rustls", "postgres"] }
+uuid = "1.4.0"

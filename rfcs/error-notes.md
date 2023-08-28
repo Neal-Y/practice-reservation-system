@@ -279,3 +279,121 @@ test manager::tests::test_query_should_return_vec_of_reservation ... FAILED
 ## Solution
 
 使用cursor以及相關演算法來解決這個問題，我在這裡使用了`keyset pagination`，這是一種基於資料庫索引的分頁方法。它使用資料庫索引中的值來決定下一頁的起始點，而不是使用OFFSET。這種方法的好處是，它可以保證分頁的效能不會隨著數據量的增長而下降。
+
+## ERROR： during write the gRPC server's test case has some problem
+### Describe:
+問題出現在的我想要對gRPC server進行測試，但是在我使用sqlx_database_tester時突然意識到這樣只會對資料庫進行測試，而不是gRPC server，這樣的測試是不完整的。
+
+測試案例是直接對 RsvpService 進行操作，而不是模擬一個實際的gRPC請求到服務器。這意味著，我是在測試業務邏輯，但沒有測試gRPC服務器的整體行為。
+
+簡單來說就是要integration test，而不是unit test。`測試一條龍服務運作如何。`
+
+## Error Analysis
+
+如果我希望完整地測試gRPC服務器，我需要做以下事情：
+
+- 啟動gRPC服務器：我需要在測試案例中啟動gRPC服務器，可能需要指定一個短暫的端口來確保不會有端口衝突。
+- 模擬gRPC客戶端：使用gRPC的Rust客戶端工具來模擬一個客戶端，並發送請求到服務器。
+- 驗證服務器響應：當服務器響應後，確認你收到了預期的響應。
+
+這樣，我就可以完整地模擬一個真實的gRPC請求和響應過程，並確保服務器行為是正確的。
+
+`雖然我也想這樣做不過我更想focus在rust內部做integration tests`
+
+## Solution
+
+那根據我最後的決策，我想在測試時生成一個跟生產環境一模一樣的database供我做最貼近實際資料庫的測試，以下是我的步驟：
+
+1. `初始化`：
+    使用 lazy_static 創建一個全局的 tokio Runtime (TEST_RT)。這將在測試期間只初始化一次，並用於執行異步任務。
+
+    定義 TestConfig 結構，它代表測試配置並提供以下功能：
+
+    在初始化時，根據預設的配置文件 (config.yml) 創建一個具有唯一名稱的新測試數據庫。
+    在被丟棄（Drop）時，刪除先前創建的測試數據庫。
+
+2. `測試`：
+    在 rpc_reserve_should_work 測試中，我執行了以下操作：
+    - 使用 TestConfig 創建測試配置。
+    - 使用此測試配置初始化 RsvpService 服務。
+    - 創建一個新的預訂請求 (ReserveRequest)。
+    - 調用 reserve 方法處理此請求。
+    - 驗證回應中的預訂是否符合預期。
+
+3. `清理`：
+    當 TestConfig 實例超出作用域並被丟棄時，其 Drop 實現將被調用。在這個 Drop 實現中，執行了以下操作：
+    - 斷開與該測試數據庫的所有連接。`發現新大陸(pg_database function)`
+    - 刪除先前創建的測試數據庫。
+
+## ERROR： in order to avoid the sql injection, format!() or .bind()
+### Describe:
+"parameterized queries" 或 "prepared statements"
+
+r# 是一個原始字串文字 (raw string literal) 的開始標記。當你想表示一個字串，且這個字串中包含很多反斜線 ( \ ) 或者特殊字符時，使用原始字串可以讓你更輕鬆地表達這些內容，因為原始字串不會進行任何轉義。
+
+## Error Analysis
+
+首先，養成好習慣，當我需要使用`format!()`時因為避免裡面的符號被胡亂翻譯，所以我使用`r#""#`來包裝，像是：
+```rust
+sqlx::query(&format!(r#"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND datname = '{}'"#, dbname))
+```
+亦或是：
+
+`普通字串文字`："Hello\nWorld" 會被解釋為兩行的 Hello 和 World，因為 \n 是一個換行字符。
+
+`原始字串文字`：r#"Hello\nWorld"# 會被直接解釋為 `Hello\nWorld`。
+
+但前提是確保團隊看得懂，同時我也要注意到，如果我是在`sqlx::query()`也就是在使用查詢語句的情況下使用`format!()`時，我必須要確保`sql injection`的問題。
+
+像是在上面的例子中，假設dbname的值是`"'; DROP TABLE important_data; --"`,那麼該查詢將會試圖刪除名為important_data的表。
+
+## Solution
+
+- 最小權限原則:
+
+    在建立資料庫連接的使用者時，不要授予該使用者「超級使用者」或「管理員」的角色。
+    只給予需要的權限。例如，如果一個應用程序只需要從資料庫中讀取資料，那麼該使用者不應該有寫入或修改的權限。
+    在大多數的RDBMS系統，如PostgreSQL或MySQL中，都可以使用GRANT和REVOKE語句來管理使用者權限。
+
+- 編碼規範:
+
+    始終使用參數化查詢或資料庫提供的API方法，而不是字符串拼接或format!()來創建SQL語句。
+    例如，在sqlx庫中，可以使用`.bind()`方法來綁定參數。
+
+- 程式碼審查:
+
+    設定定期的程式碼審查流程，並確保團隊中有資深或具備安全知識的工程師參與。
+    使用工具，如git進行版本控制，並在合併更改之前，通過合併請求（Merge Request）或拉取請求（Pull Request）進行審查。
+
+- 使用專業工具:
+
+    使用靜態應用程序安全測試(SAST)工具，這些工具可以自動掃描源代碼，尋找常見的安全問題，例如SQL注入、跨站腳本(XSS)等。
+    使用動態應用程序安全測試(DAST)工具來執行實時的安全測試。
+    使用資料庫活動監控工具，這些工具可以實時監控資料庫查詢，並在偵測到可疑或異常活動時發出警報。
+
+## ERROR： PgDatabaseError: xxxexample is accessed by other users, there is one other session using the database.
+### Describe:
+這個是當我在創建與生產環境相同的的資料庫時，在測試完畢後想把他Drop時出現的問題，由於我在Drop時無database斷開所有連接，所以出現PgDatabaseError: xxxexample is accessed by other users, there is one other session using the database.`的錯誤。
+
+## Error Analysis
+
+```sql
+thread '<unnamed>' panicked at 'Error while querying the drop database: Database(PgDatabaseError { severity: Error, code: "55006", message: "database \"test_7d9a76e7-9d7c-4454-9551-a6f072f4c295\" is being accessed by other users", detail: Some("There is 1 other session using the database."), hint: None, position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("dbcommands.c"), line: Some(933), routine: Some("dropdb") })', service/src/service.rs:261:26
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+thread 'service::tests::rpc_reserve_should_work' panicked at 'failed to drop database: Any { .. }', service/src/service.rs:265:14
+```
+
+原因是因為我在手動Drop我的TestConfig中的DB時，資料庫還有其他線程連接著。
+
+## Solution
+
+這時候參考sqlx-database-tester crate的source code時，發現我可以在rust中操作資料庫層像是：
+
+```rust
+sqlx::query(&format!(r#"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND datname = '{}'"#, #database_name))
+				.execute(&db_pool)
+				.await
+				.expect("Terminate all other connections");
+```
+
+`使他能夠在被Drop前，確保所有連線都被斷開，這樣就不會出現我剛剛提到的database error`
