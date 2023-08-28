@@ -64,7 +64,7 @@ impl FromStr for ParsedInfo {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // use regex to parse the string
         // TODO: how to write regular expressions
-        let regex = Regex::new(r#"\((?P<k1>[a-zA-Z0-9_-]+)\s*,\s*(?P<k2>[a-zA-Z0-9_-]+)\)=\((?P<v1>[a-zA-Z0-9_-]+)\s*,\s*\[(?P<v2>[^\)\]]+)"#).unwrap();
+        let regex = Regex::new(r"\((?P<k1>[a-zA-Z0-9_-]+)\s*,\s*(?P<k2>[a-zA-Z0-9_-]+)\)=\((?P<v1>[a-zA-Z0-9_-]+)\s*,\s*\[(?P<v2>[^\)\]]+)").unwrap();
 
         // let maps = regex
         //     .captures_iter(s)
