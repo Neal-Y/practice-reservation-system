@@ -41,8 +41,6 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: install nextest
         uses: taiki-e/install-action@nextest
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - uses: Swatinem/rust-cache@v1
       - name: Check code format
         run: cargo fmt -- --check
@@ -52,3 +50,5 @@ jobs:
         run: cargo clippy --all-targets --all-features --tests --benches -- -D warnings
       - name: Execute rust tests
         run: cargo nextest run --all-features
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
