@@ -56,3 +56,4 @@ jobs:
         run: cargo nextest run --all-features
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RUST_BACKTRACE: 1
