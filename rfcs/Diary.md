@@ -209,3 +209,9 @@ I updated the code to have a more adaptable path and added documentation. Then, 
 ### Title: calm down to think about how can I deal with the gRPC server interface's integration tests
 
 Today, I finally clarified A TEST(ONE) that took me a while to understand. I began by diving deep into what 'runtime' is. Then, I pondered how to implement a synchronous 'Drop Trait' to drop an asynchronous database. However, I later chose a more direct approach. When testing, I first connected to the server and created a test database. Next, I connected to this database using its URL. This was followed by a series of gRPC server tests. After testing, it was important to drop the test database. But before doing so, I ensured all connections were closed.
+
+## 08/29
+
+### Title: the .env shouldn't be in the git, and use the git secrets instead.
+
+I was unsure about including .env variables in my git repo. After researching, I learned about using git secrets for sensitive data. But during tests, I connect to a database through the 'sqlx_database_tester' crate, so I was unclear about its URL connection method. At first, I thought the URL from git secrets wasn't found. But the real issue was with parsing the URL. After changing 'postgres' to 'localhost', finally, I identified is the 'location(@)' problem.
