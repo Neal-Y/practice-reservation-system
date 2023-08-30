@@ -215,3 +215,9 @@ Today, I finally clarified A TEST(ONE) that took me a while to understand. I beg
 ### Title: the .env shouldn't be in the git, and use the git secrets instead.
 
 I was unsure about including .env variables in my git repo. After researching, I learned about using git secrets for sensitive data. But during tests, I connect to a database through the 'sqlx_database_tester' crate, so I was unclear about its URL connection method. At first, I thought the URL from git secrets wasn't found. But the real issue was with parsing the URL. After changing 'postgres' to 'localhost', finally, I identified is the 'location(@)' problem.
+
+## 08/30
+
+### Title: implement the server function
+
+Today, I implemented the server function, which is responsible for reservation requests and responding accordingly.

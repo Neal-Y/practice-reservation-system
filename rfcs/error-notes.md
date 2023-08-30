@@ -397,3 +397,21 @@ sqlx::query(&format!(r#"SELECT pg_terminate_backend(pid) FROM pg_stat_activity W
 ```
 
 `使他能夠在被Drop前，確保所有連線都被斷開，這樣就不會出現我剛剛提到的database error`
+
+## ERROR： Determine whether it is necessary to extract the database test pre-work into a separate crate
+### Describe:
+just like title means.
+
+## Error Analysis
+just a concept that I need to think about it.
+
+- `將其放在共用的模組中`：你可以將這些工具函數和結構放在一個共用的模組中，然後在需要的地方引入它。這可以保持你的代碼組織整潔，並避免重複。
+
+- `使用 workspace`：如果你的系統實際上包含多個互相相依的 Rust 專案，你可以考慮使用 Cargo workspace。workspace 允許你在單一的頂層目錄下管理和建構多個相關的 Rust 專案。這樣，你可以在其中一個 crate 中定義這些工具功能，並在其他 crate 中引用它。
+
+- `稍後再決定`：你也可以等待，看看隨著專案的發展，這些工具是否確實在多個地方被重用，或者是否出現了其他需要將其提取到獨立 crate 的原因。
+
+## Solution
+postpone my decision.
+
+but in practice, if u need to keep the code private, u can try use the git repo which are not public, only your team can access it. that means u don't publish your own code to crate.io.

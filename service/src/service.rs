@@ -35,34 +35,53 @@ impl ReservationService for RsvpService {
             reservation: Some(reservation),
         }))
     }
+
     /// confirm a pending reservation, if reservation is not pending, do nothing
     async fn confirm(
         &self,
-        _request: Request<ConfirmRequest>,
+        request: Request<ConfirmRequest>,
     ) -> std::result::Result<Response<ConfirmResponse>, Status> {
-        todo!()
+        let request = request.into_inner();
+        let confirm = self.manager.change_status(request.id).await?;
+        Ok(Response::new(ConfirmResponse {
+            reservation: Some(confirm),
+        }))
     }
+
     /// update the reservation note
     async fn update(
         &self,
-        _request: Request<UpdateRequest>,
+        request: Request<UpdateRequest>,
     ) -> std::result::Result<Response<UpdateResponse>, Status> {
-        todo!()
+        let request = request.into_inner();
+        let update = self.manager.update_note(request.id, request.note).await?;
+        Ok(Response::new(UpdateResponse {
+            reservation: Some(update),
+        }))
     }
     /// cancel a reservation
     async fn cancel(
         &self,
-        _request: Request<CancelRequest>,
+        request: Request<CancelRequest>,
     ) -> std::result::Result<Response<CancelResponse>, Status> {
-        todo!()
+        let request = request.into_inner();
+        let delete = self.manager.delete(request.id).await?;
+        Ok(Response::new(CancelResponse {
+            reservation: Some(delete),
+        }))
     }
     /// get a reservation by id
     async fn get(
         &self,
-        _request: Request<GetRequest>,
+        request: Request<GetRequest>,
     ) -> std::result::Result<Response<GetResponse>, Status> {
-        todo!()
+        let request = request.into_inner();
+        let get = self.manager.get(request.id).await?;
+        Ok(Response::new(GetResponse {
+            reservation: Some(get),
+        }))
     }
+
     /// Server streaming response type for the query method.
     type queryStream = ReservationStream;
     /// query reservations by resource id, user id, status, start time, end time
@@ -72,13 +91,23 @@ impl ReservationService for RsvpService {
     ) -> std::result::Result<Response<Self::queryStream>, Status> {
         todo!()
     }
+
     /// filter reservations order by reservation id
     async fn filter(
         &self,
-        _request: Request<FilterRequest>,
+        request: Request<FilterRequest>,
     ) -> std::result::Result<Response<FilterResponse>, Status> {
-        todo!()
+        let request = request.into_inner();
+        if request.query.is_none() {
+            return Err(Status::invalid_argument("query is required"));
+        }
+        let filter = self.manager.keyset_query(request.query.unwrap()).await?;
+        Ok(Response::new(FilterResponse {
+            reservations: filter.1,
+            pager: Some(filter.0),
+        }))
     }
+
     /// Server streaming response type for the listen method.
     type listenStream = ReservationStream;
     /// another system could monitor newly added/confirmed/cancelled reservations
