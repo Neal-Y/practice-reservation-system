@@ -415,3 +415,10 @@ just a concept that I need to think about it.
 postpone my decision.
 
 but in practice, if u need to keep the code private, u can try use the git repo which are not public, only your team can access it. that means u don't publish your own code to crate.io.
+
+## ERROR：streaming response need to implement on protobuf or not?
+### Describe:
+
+## Error Analysis
+
+## Solution

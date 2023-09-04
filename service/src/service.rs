@@ -89,6 +89,12 @@ impl ReservationService for RsvpService {
         &self,
         _request: Request<QueryRequest>,
     ) -> std::result::Result<Response<Self::queryStream>, Status> {
+        // let request = request.into_inner();
+        // if request.query.is_none() {
+        //     return Err(Status::invalid_argument("query is failed"));
+        // }
+        // let query = self.manager.query(request.query.unwrap()).await;
+        // Ok(Response::new(Box::pin(query)))
         todo!()
     }
 

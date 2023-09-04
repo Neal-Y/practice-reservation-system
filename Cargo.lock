@@ -1495,11 +1495,13 @@ dependencies = [
  "abi",
  "async-trait",
  "chrono",
+ "futures",
  "prost-types",
  "sqlx 0.6.3",
  "sqlx-database-tester",
  "thiserror",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

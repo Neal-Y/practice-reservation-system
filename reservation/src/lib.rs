@@ -4,6 +4,7 @@ mod tests;
 use abi::{Error, FilterPager};
 use async_trait::async_trait;
 pub use manager::ReservationManager;
+use tokio::sync::mpsc;
 
 #[async_trait]
 pub trait Rsvp {
@@ -22,7 +23,10 @@ pub trait Rsvp {
     // get reservation
     async fn get(&self, id: abi::ReservationId) -> Result<abi::Reservation, Error>;
     // get user's all reservation
-    async fn query(&self, query_id: abi::ReservationQuery) -> Result<Vec<abi::Reservation>, Error>;
+    async fn query(
+        &self,
+        query_id: abi::ReservationQuery,
+    ) -> mpsc::Receiver<Result<abi::Reservation, abi::Error>>;
     // query reservation order by reservation id
     async fn keyset_query(
         &self,
