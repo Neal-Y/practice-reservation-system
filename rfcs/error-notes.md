@@ -403,6 +403,7 @@ sqlx::query(&format!(r#"SELECT pg_terminate_backend(pid) FROM pg_stat_activity W
 just like title means.
 
 ## Error Analysis
+
 just a concept that I need to think about it.
 
 - `將其放在共用的模組中`：你可以將這些工具函數和結構放在一個共用的模組中，然後在需要的地方引入它。這可以保持你的代碼組織整潔，並避免重複。
@@ -418,7 +419,38 @@ but in practice, if u need to keep the code private, u can try use the git repo 
 
 ## ERROR：streaming response need to implement on protobuf or not?
 ### Describe:
+這個問題是在描述是否有必要在protobuf中實現streaming response的message?
 
 ## Error Analysis
 
+在實務上，為什麼Streaming不需要額外的容器？
+
+- `最小的封裝`：Streaming的主要優勢是效率和實時性。將每條消息包裹在額外的容器中只會增加不必要的開銷。
+
+- `獨立性`：每個流消息都是獨立的，意味著它不依賴於之前或之後的消息。因此，將其包裹在額外的容器中沒有太大意義。
+
+- `靈活性`：由於每個消息都是獨立的，客戶端可以決定如何處理它，例如立即顯示、緩存或忽略。
+
+- `協議設計`：protobuf的目的是簡單且高效。對於streaming回應，直接發送要流的消息本身是最直接和高效的方法。
+
+總之，儘管gRPC允許為streaming回應創建一個容器，但在大多數情境下，這樣做可能是多餘的或不必要的。直接流消息提供了更高的效率和簡單性。
+
+簡單來說就是`沒有必要`
+
 ## Solution
+
+首先，gRPC的目的是允許伺服器和客戶端之間的高效通信。其中一種方法是通過使用streaming回應，允許伺服器連續發送消息，而`無需等待`每個消息被確認或處理。這是與典型的請求-回應模式不同的地方。
+
+舉例：
+
+`單一回應`：
+
+- 假設想獲取某種資源的列表，例如`Reservations`。
+- 伺服器在一次操作中將所有預訂作為一個列表返回。
+- 這時，可能需要一個容器或Response消息來保存整個列表，因為這是一次性操作。
+
+`Streaming 回應`：
+
+- 您想監視或獲取Reservations的實時流。
+- 伺服器可能會在不同的時間點連續發送多個預訂。
+- 在這種情境下，伺服器會連續地、一次發送一個預訂。每個預訂都是獨立的消息，可以立即被客戶端處理。不需要等待整個列表。

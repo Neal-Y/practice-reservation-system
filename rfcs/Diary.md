@@ -227,3 +227,9 @@ Today, I implemented the server function, which is responsible for reservation r
 ### Title: fixed the query server's logic fault
 
 Today, I made design adjustments. I planned to use streaming when the client sends requests to the gRPC server. However, even though the gRPC response is streaming, the server retrieves data using a 'vec<reservation>'. This means all data is gathered at once and then sent to the client piece by piece. This isn't efficient. I wanted a continuous streaming process from the database to the client. Because of this, I changed the way the query() function interacts with the database. Instead of returning all data at once in a vector, I used a channel to stream the data.
+
+## 09/04
+
+### Title: finished the query method
+
+- [ ] I need to consider about the `TonicReceiverStream` should implement a message which is a container for wrapped `ReceiverStream` into `Stream` or not.
