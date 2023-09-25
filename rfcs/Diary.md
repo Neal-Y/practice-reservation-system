@@ -233,3 +233,9 @@ Today, I made design adjustments. I planned to use streaming when the client sen
 ### Title: finished the query method
 
 - [ ] I need to consider about the `TonicReceiverStream` should implement a message which is a container for wrapped `ReceiverStream` into `Stream` or not.
+
+## 09/25
+
+### Title: I'M BACK!!!
+
+I just finished my military service and came out of the camp. Now, I need to add some remaining features to my project and review what I've done so far.
