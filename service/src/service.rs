@@ -13,7 +13,7 @@ use abi::{
     ConfirmRequest, ConfirmResponse, FilterRequest, FilterResponse, GetRequest, GetResponse,
     ListenRequest, QueryRequest, ReserveRequest, ReserveResponse, UpdateRequest, UpdateResponse,
 };
-use futures::Stream;
+use futures::{Stream, StreamExt};
 use reservation::{ReservationManager, Rsvp};
 use tokio::sync::mpsc;
 use tonic::{async_trait, Request, Response, Status};
@@ -97,14 +97,16 @@ impl ReservationService for RsvpService {
         request: Request<QueryRequest>,
     ) -> std::result::Result<Response<Self::queryStream>, Status> {
         let request = request.into_inner();
-        if request.query.is_none() {
-            return Err(Status::invalid_argument("query is failed"));
-        }
-        let query = self.manager.query(request.query.unwrap()).await;
-        let stream = TonicReceiverStream::new(query);
+        let internal_query = request
+            .query
+            .ok_or(Status::invalid_argument("Query is missing"))?;
+        let query = self.manager.query(internal_query).await;
+        let stream = TonicReceiverStream::new(query).boxed();
 
-        Ok(Response::new(Box::pin(stream)))
+        Ok(Response::new(stream))
     }
+
+    //TODO: remove TonicReceiverStream
 
     /// filter reservations order by reservation id
     async fn filter(

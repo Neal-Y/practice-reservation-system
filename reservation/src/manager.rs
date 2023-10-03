@@ -14,9 +14,13 @@ pub struct ReservationManager {
     pool: PgPool, // sqlx 裡面 postgres pool database connection 使用Arc將各種database connection 分開
 }
 
+// type alias for simplify type
+type RsvpResult = Result<abi::Reservation, abi::Error>;
+type ReservationReceiver = mpsc::Receiver<RsvpResult>;
+
 #[async_trait]
 impl Rsvp for ReservationManager {
-    async fn reserve(&self, mut rsvp: abi::Reservation) -> Result<abi::Reservation, Error> {
+    async fn reserve(&self, mut rsvp: abi::Reservation) -> RsvpResult {
         rsvp.validate()?;
 
         let status = abi::ReservationStatus::from_i32(rsvp.status)
@@ -41,7 +45,7 @@ impl Rsvp for ReservationManager {
     }
 
     // change reservation status
-    async fn change_status(&self, id: ReservationId) -> Result<abi::Reservation, Error> {
+    async fn change_status(&self, id: ReservationId) -> RsvpResult {
         // error: code: "42883", message: "operator does not exist: uuid = text"，所以轉Uuid進去查詢語句。
         // let id: Uuid = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
 
@@ -58,11 +62,7 @@ impl Rsvp for ReservationManager {
     }
 
     // update note
-    async fn update_note(
-        &self,
-        id: ReservationId,
-        note: String,
-    ) -> Result<abi::Reservation, Error> {
+    async fn update_note(&self, id: ReservationId, note: String) -> RsvpResult {
         // let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
 
         id.validate()?;
@@ -77,7 +77,7 @@ impl Rsvp for ReservationManager {
     }
 
     // delete reservation
-    async fn delete(&self, id: ReservationId) -> Result<abi::Reservation, Error> {
+    async fn delete(&self, id: ReservationId) -> RsvpResult {
         // let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
 
         id.validate()?;
@@ -91,7 +91,7 @@ impl Rsvp for ReservationManager {
     }
 
     // get reservation
-    async fn get(&self, id: ReservationId) -> Result<abi::Reservation, Error> {
+    async fn get(&self, id: ReservationId) -> RsvpResult {
         // let id = Uuid::from_str(&id).map_err(|_| abi::Error::InvalidReservationId(id.clone()))?;
 
         id.validate()?;
@@ -103,10 +103,7 @@ impl Rsvp for ReservationManager {
         Ok(rsvp)
     }
 
-    async fn query(
-        &self,
-        query: abi::ReservationQuery,
-    ) -> mpsc::Receiver<Result<abi::Reservation, abi::Error>> {
+    async fn query(&self, query: abi::ReservationQuery) -> ReservationReceiver {
         let user_id = string_to_option(&query.user_id);
         let resource_id = string_to_option(&query.resource_id);
         let range = query.get_timespan();

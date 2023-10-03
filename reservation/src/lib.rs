@@ -6,6 +6,8 @@ use async_trait::async_trait;
 pub use manager::ReservationManager;
 use tokio::sync::mpsc;
 
+type ReservationReceiver = mpsc::Receiver<Result<abi::Reservation, abi::Error>>;
+
 #[async_trait]
 pub trait Rsvp {
     // make a reservation
@@ -23,10 +25,7 @@ pub trait Rsvp {
     // get reservation
     async fn get(&self, id: abi::ReservationId) -> Result<abi::Reservation, Error>;
     // get user's all reservation
-    async fn query(
-        &self,
-        query_id: abi::ReservationQuery,
-    ) -> mpsc::Receiver<Result<abi::Reservation, abi::Error>>;
+    async fn query(&self, query_id: abi::ReservationQuery) -> ReservationReceiver;
     // query reservation order by reservation id
     async fn keyset_query(
         &self,

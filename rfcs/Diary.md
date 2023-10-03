@@ -239,3 +239,9 @@ Today, I made design adjustments. I planned to use streaming when the client sen
 ### Title: I'M BACK!!!
 
 I just finished my military service and came out of the camp. Now, I need to add some remaining features to my project and review what I've done so far.
+
+## 10/03
+
+### Title: refactor the query method
+
+Optimize some functions and do some type alias.
