@@ -1,7 +1,5 @@
-use abi::{reservation_service_server::ReservationServiceServer, Config};
-use reservation_service::RsvpService;
+use reservation_service::start_the_server;
 use std::path::Path;
-use tonic::transport::Server;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -14,18 +12,6 @@ async fn main() -> anyhow::Result<()> {
 
     // 這邊是讀取環境變數，如果沒有的話就用上面的路徑
     let filepath = std::env::var("RESERVATION_CONFIG").unwrap_or_else(|_| {
-        // let p1 = Path::new("./reservation.yml");
-        // let p2 = Path::new("/etc/reservation.yml");
-        // let path = shellexpand::tilde("~/.config/reservation.yml");
-        // let p3 = Path::new(path.as_ref());
-
-        // match (p1.exists(), p2.exists(), p3.exists()) {
-        //     (true, _, _) => p1.to_str().unwrap().to_string(),
-        //     (_, true, _) => p2.to_str().unwrap().to_string(),
-        //     (_, _, true) => p3.to_str().unwrap().to_string(),
-        //     _ => panic!("config file not found",),
-        // }
-
         //? 閉包可以捕捉外部的變數，所以可以直接用上面的路徑
         possible_path
             .into_iter()
@@ -34,13 +20,7 @@ async fn main() -> anyhow::Result<()> {
             .unwrap()
     });
 
-    let config = Config::load(&filepath)?;
-    let addr = format!("{}:{}", config.server.host, config.server.port).parse()?;
-    let service = RsvpService::from_config(&config).await?;
-    let service = ReservationServiceServer::new(service);
-
-    Server::builder().add_service(service).serve(addr).await?;
-    Ok(())
+    start_the_server(filepath).await
 }
 
 /*

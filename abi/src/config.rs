@@ -1,6 +1,6 @@
 use crate::Error;
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::{fs, path::Path};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
@@ -30,8 +30,8 @@ pub struct SeverConfig {
 }
 
 impl Config {
-    pub fn load(filename: &str) -> Result<Self, Error> {
-        let config = fs::read_to_string(filename).map_err(|_| Error::FailedToParse)?;
+    pub fn load(filename: impl AsRef<Path>) -> Result<Self, Error> {
+        let config = fs::read_to_string(filename.as_ref()).map_err(|_| Error::FailedToParse)?;
         serde_yaml::from_str(&config).map_err(|_| Error::FailedToRead)
     }
 }

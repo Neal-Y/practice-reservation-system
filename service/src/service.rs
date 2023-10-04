@@ -2,20 +2,15 @@
 //? 把吃進來的protobuf定義的資料轉成reservation core的資料再將他們輸出出去即可
 //? 輸入->校驗->轉換(required args by reservation core)->處理->轉換(gRPC interface)->輸出
 
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
-
-use crate::{ReservationStream, RsvpService, TonicReceiverStream};
+use crate::{ReservationStream, RsvpService};
 use abi::{
     reservation_service_server::ReservationService, CancelRequest, CancelResponse, Config,
     ConfirmRequest, ConfirmResponse, FilterRequest, FilterResponse, GetRequest, GetResponse,
     ListenRequest, QueryRequest, ReserveRequest, ReserveResponse, UpdateRequest, UpdateResponse,
 };
-use futures::{Stream, StreamExt};
+use futures::StreamExt;
 use reservation::{ReservationManager, Rsvp};
-use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 
 impl RsvpService {
@@ -97,16 +92,19 @@ impl ReservationService for RsvpService {
         request: Request<QueryRequest>,
     ) -> std::result::Result<Response<Self::queryStream>, Status> {
         let request = request.into_inner();
+
+        // make sure query is not empty
         let internal_query = request
             .query
             .ok_or(Status::invalid_argument("Query is missing"))?;
+
         let query = self.manager.query(internal_query).await;
-        let stream = TonicReceiverStream::new(query).boxed();
+        let stream = ReceiverStream::new(query);
 
-        Ok(Response::new(stream))
+        let transformed_stream = stream.map(|s| s.map_err(tonic::Status::from)).boxed();
+
+        Ok(Response::new(transformed_stream))
     }
-
-    //TODO: remove TonicReceiverStream
 
     /// filter reservations order by reservation id
     async fn filter(
@@ -135,23 +133,23 @@ impl ReservationService for RsvpService {
     }
 }
 
-// in order to turn mpsc::Receiver<Result<T, abi::Error>> into tonic::Response
-impl<T> Stream for TonicReceiverStream<T> {
-    type Item = Result<T, Status>;
+// // in order to turn mpsc::Receiver<Result<T, abi::Error>> into tonic::Response
+// impl<T> Stream for TonicReceiverStream<T> {
+//     type Item = Result<T, Status>;
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        match self.inner.poll_recv(cx) {
-            Poll::Ready(Some(Ok(t))) => Poll::Ready(Some(Ok(t))),
-            Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(e.into()))), // cuz implement the From trait for abi::Error
-            Poll::Ready(None) => Poll::Ready(None),
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
+//     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+//         match self.inner.poll_recv(cx) {
+//             Poll::Ready(Some(Ok(t))) => Poll::Ready(Some(Ok(t))),
+//             Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(e.into()))), // cuz implement the From trait for abi::Error
+//             Poll::Ready(None) => Poll::Ready(None),
+//             Poll::Pending => Poll::Pending,
+//         }
+//     }
+// }
 
-// just new function
-impl<T> TonicReceiverStream<T> {
-    pub fn new(inner: mpsc::Receiver<Result<T, abi::Error>>) -> Self {
-        Self { inner }
-    }
-}
+// // just new function
+// impl<T> TonicReceiverStream<T> {
+//     pub fn new(inner: mpsc::Receiver<Result<T, abi::Error>>) -> Self {
+//         Self { inner }
+//     }
+// }

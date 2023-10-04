@@ -1,3 +1,4 @@
+mod grpc_service;
 mod service_reserve_tests;
 
 #[cfg(test)]
