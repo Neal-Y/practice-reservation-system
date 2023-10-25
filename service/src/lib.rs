@@ -5,8 +5,7 @@ use abi::{reservation_service_server::ReservationServiceServer, Config, Reservat
 use anyhow::Ok;
 use futures::Stream;
 use reservation::ReservationManager;
-use std::{path::Path, pin::Pin};
-// use tokio::sync::mpsc;
+use std::pin::Pin;
 use tonic::{transport::Server, Status};
 
 pub struct RsvpService {
@@ -15,10 +14,9 @@ pub struct RsvpService {
 
 type ReservationStream = Pin<Box<dyn Stream<Item = Result<Reservation, Status>> + Send>>;
 
-pub async fn start_the_server(filename: impl AsRef<Path>) -> Result<(), anyhow::Error> {
-    let config = Config::load(filename)?;
+pub async fn start_the_server(config: &Config) -> Result<(), anyhow::Error> {
     let addr = format!("{}:{}", config.server.host, config.server.port).parse()?;
-    let service = RsvpService::from_config(&config).await?;
+    let service = RsvpService::from_config(config).await?;
     let service = ReservationServiceServer::new(service);
 
     Server::builder().add_service(service).serve(addr).await?;

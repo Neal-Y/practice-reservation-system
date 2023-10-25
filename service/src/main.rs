@@ -1,3 +1,4 @@
+use abi::Config;
 use reservation_service::start_the_server;
 use std::path::Path;
 
@@ -20,7 +21,8 @@ async fn main() -> anyhow::Result<()> {
             .unwrap()
     });
 
-    start_the_server(filepath).await
+    let config = Config::load(filepath)?;
+    start_the_server(&config).await
 }
 
 /*

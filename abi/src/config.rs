@@ -53,6 +53,16 @@ impl DbConfig {
     }
 }
 
+impl SeverConfig {
+    pub fn url(&self, https: bool) -> String {
+        if https {
+            format!("https://{}:{}", self.host, self.port)
+        } else {
+            format!("http://{}:{}", self.host, self.port)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -73,7 +83,7 @@ mod tests {
                     max_connections: 5
                 },
                 server: SeverConfig {
-                    host: "localhost".to_string(),
+                    host: "0.0.0.0".to_string(),
                     port: 8080
                 }
             }

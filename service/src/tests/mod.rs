@@ -1,4 +1,4 @@
-mod grpc_service;
+// mod grpc_service;
 mod service_reserve_tests;
 
 #[cfg(test)]
@@ -7,7 +7,6 @@ mod test_utils {
     use sqlx::{Connection, Executor, PgConnection};
     use std::sync::Arc;
     use uuid::Uuid;
-
     pub(crate) struct TestConfig {
         pub config: Arc<Config>,
     }

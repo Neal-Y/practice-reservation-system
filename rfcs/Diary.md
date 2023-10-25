@@ -245,3 +245,27 @@ I just finished my military service and came out of the camp. Now, I need to add
 ### Title: refactor the query method
 
 Optimize some functions and do some type alias.
+
+## 10/10
+
+### Title: implement integration test
+
+that's gonna be long time to take a look at the project, cuz I haven't do this thing loooong time. so it will take while.
+
+## 10/18
+
+### Title: the goddamn macro
+
+I'm inspired by how ChatGPT is a great tool for learning new things. Now, I'm working on constructing some structs. Over time, I've noticed I'm repeating tasks, which goes against the 'DRY' (Don't Repeat Yourself) principle. So, I've decided to use macros to replace multiple new() functions. In my view, macros are like functions because we use them to clean up repetitive code and keep interfaces clear, just as we do with functions. This is probably the same reason we use macros in Rust: to simplify function signatures and make code more manageable.
+
+## 10/20
+
+### Title: change builder
+
+While writing integration tests, I realized that one of my parameters (pager) needs to be set flexibly, not hard-coded. I plan to give it a default value during its generation. So, I'm making adjustments in the build.rs file and still thinking about the best way to implement this...
+
+## 10/23
+
+### Title: database permission denied
+
+I encountered the same problem again - it's a database permissions issue. I really need to understand what's happening with the entire database env, that will push in my todo list. It feels like I've got it, but reality is I forget the basics. This time, the issue appeared after I changed the server startup settings and configurations. Initially, I thought these changes caused the 'permission denied' error. However, after much deliberation, I realized the problem was elsewhere. My superuser, the one who created the database, wasn't the one connecting and performing operations. Instead, a different user with a default name was doing so, and this user didn't have the permissions to execute 'sqlx migrate revert' for rollback actions. This experience has imprinted a deep understanding in me and genuinely highlighted the importance of 'unit testing.' It ensures that your refactored code still works as intended.

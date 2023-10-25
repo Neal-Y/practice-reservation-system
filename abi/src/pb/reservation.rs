@@ -127,9 +127,9 @@ pub struct ReservationQuery {
     #[builder(setter(into), default)]
     pub page: i32,
     /// page size for the query
-    #[prost(int32, tag = "7")]
-    #[builder(setter(into), default)]
-    pub page_size: i32,
+    #[prost(int64, tag = "7")]
+    #[builder(setter(into), default = "10")]
+    pub page_size: i64,
     /// sort direction
     #[prost(bool, tag = "8")]
     #[builder(setter(into), default)]
@@ -163,9 +163,9 @@ pub struct FilterById {
     #[builder(setter(into), default)]
     pub cursor: i64,
     /// page size
-    #[prost(int32, tag = "5")]
-    #[builder(setter(into), default)]
-    pub page_size: i32,
+    #[prost(int64, tag = "5")]
+    #[builder(setter(into), default = "10")]
+    pub page_size: i64,
     /// sort direction
     #[prost(bool, tag = "6")]
     #[builder(setter(into), default)]
@@ -187,8 +187,8 @@ pub struct FilterPager {
     /// next
     #[prost(int64, tag = "2")]
     pub next: i64,
-    #[prost(int32, tag = "3")]
-    pub total: i32,
+    #[prost(int64, tag = "3")]
+    pub total: i64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

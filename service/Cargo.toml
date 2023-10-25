@@ -15,6 +15,7 @@ tokio = { version = "1.32.0", features = ["full"] }
 tokio-stream = "0.1"
 tonic = { version = "0.9.2", features = ["gzip", "tls"] }
 
+
 [dev-dependencies]
 sqlx = { version = "0.7.0", features = ["runtime-tokio-rustls", "postgres"] }
-uuid = "1.4.0"
+uuid = "1.4.1"

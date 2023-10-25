@@ -33,7 +33,7 @@ fn main() {
         .compile(&["protos/reservation.proto"], &["protos"])
         .unwrap();
 
-    Command::new("cargo").args(["fmt"]).output().unwrap();
+    Command::new("cargo").args(["fmt"]).output().unwrap(); //? pre-commit
 }
 
 /*
@@ -86,10 +86,12 @@ impl BuilderUtils for Builder {
     // turn into lots of fields
     fn with_into_builder(self, path: &str, fields: &[&str]) -> Self {
         fields.iter().fold(self, |acc, field| {
-            acc.field_attribute(
-                format!("{}.{}", path, field),
-                "#[builder(setter(into),default)]",
-            )
+            let attribute = if field == &"page_size" {
+                "#[builder(setter(into),default = \"10\")]"
+            } else {
+                "#[builder(setter(into),default)]"
+            };
+            acc.field_attribute(format!("{}.{}", path, field), attribute)
         })
     }
 }

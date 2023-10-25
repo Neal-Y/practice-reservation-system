@@ -188,7 +188,7 @@ impl Rsvp for ReservationManager {
 
         // 假設start為0也就是第一頁資料，如果他有下一頁我們的LIMIT是會抓取11筆資料這樣就是11-0>10，那麼就有下一頁。
         // 如果start為1也就是第一頁以後的，
-        let has_next_page = (rsvps.len() - start) as i32 > page_size;
+        let has_next_page = (rsvps.len() - start) as i64 > page_size;
         // 因為當初有LIMIT有多取1(為了確定是否還有下一頁)，但是我們並不需要+1的值，所以設定end時就是為長度-1
         // 如果當初沒取到也就是沒有下一頁，那麼end就是長度。
         let end = if has_next_page {

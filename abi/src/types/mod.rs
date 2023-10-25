@@ -4,6 +4,7 @@ use sqlx::postgres::types::PgRange;
 
 use crate::{utils::convert_time_to_utc, Error};
 
+mod request;
 mod reservation;
 mod reservation_query;
 mod reservation_status;
