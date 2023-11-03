@@ -4,7 +4,7 @@ mod tests {
     use abi::{reservation_service_server::ReservationService, Reservation, ReserveRequest};
 
     #[tokio::test]
-    async fn test_rpc_reserve_server_should_work() {
+    async fn local_test_rpc_reserve_server_should_work() {
         let config = TestConfig::new().await;
         config.initialize().await;
 

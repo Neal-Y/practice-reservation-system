@@ -269,3 +269,45 @@ While writing integration tests, I realized that one of my parameters (pager) ne
 ### Title: database permission denied
 
 I encountered the same problem again - it's a database permissions issue. I really need to understand what's happening with the entire database env, that will push in my todo list. It feels like I've got it, but reality is I forget the basics. This time, the issue appeared after I changed the server startup settings and configurations. Initially, I thought these changes caused the 'permission denied' error. However, after much deliberation, I realized the problem was elsewhere. My superuser, the one who created the database, wasn't the one connecting and performing operations. Instead, a different user with a default name was doing so, and this user didn't have the permissions to execute 'sqlx migrate revert' for rollback actions. This experience has imprinted a deep understanding in me and genuinely highlighted the importance of 'unit testing.' It ensures that your refactored code still works as intended.
+
+## 10/27
+
+### Title: a bunch of things need to do...
+
+- [x] 1. I need to refactor my start_the_server, that can make service_reserve_test and grpc_service can use it to start the server.
+- [x] 2. clarify the gRPC server and mock database should be implemented in the same thread or not, if YES maybe I need to do a little change for TestConfig or implement the clone trait.
+
+## 10/31
+
+### Title: The difference between testing locally without internet connectivity and starting a server to tests.
+
+I've clarified that tonic automatically generates related structs based on my .proto file. At the same time, I need to figure out if I should change how I simulate the database during testing.
+
+- [ ] Should I continue using the current TestConfig, or should I switch to using migrations to reduce time consumption?
+- [x] set the timeout when happen some error still can shut down the test.
+
+## 11/01
+
+### Title: shell command first experience.
+
+When testing, I realized I hadn't properly handled the 'cleanup' of the database. This led to a situation where each test run left behind data in the database. After verifying this, I logged into the database server and found many databases remaining from tests, all named in the format of test_service_{uuid}. I ended up using a shell script to drop these databases in bulk. This experience taught me how challenging it can be to write shell scripts.
+
+## 11/02
+
+### Title: during the long time I'm still stuck in how can I implement async method in sync Drop trait to make sure that database can be dropped automatically when tests are run fail.
+
+I've tried numerous times but haven't found a satisfactory solution yet. I want to trigger a function to clean up the database even when my tests fail. The 'explicit' cleanup() won't work because if the test fails, it won't even reach that line. Moreover, using the Drop trait, or the RAII (Resource Acquisition Is Initialization) pattern, has its limitations. While writing the Drop trait, because it's synchronous, I can't handle asynchronous operations. Even though there's an option to use tokio::task::spawn_blocking, it's proven that you still can't use 'await' inside a synchronous Drop trait. I'm still searching for a better solution. If I don't find one, I'll resort to manually deleting the database.
+
+## 11/03
+
+### Title: cursor-based pagination vs offset-based pagination and something want wrong
+
+In pagination systems, "Next" and "Previous" actions typically return a response that includes a list of data items. These items represent the next or previous set of data to be displayed.
+
+A cursor is a marker or reference point used to track the position of the current page's data within the overall dataset. It ensures the continuity of data whether paging forwards (Next) or backwards (Previous).
+
+For example, let's say we have a cursor called cursorA, which represents the identifier of the last piece of data on the current page. When a user clicks "Next page", the system will use cursorA to fetch the subsequent data. The system will then return a new list of data along with a new cursor, cursorB, which will be used for the next "Next page" action or to go back to the "Previous page".
+
+For a "Next page" request, the server will return the next batch of data following the current cursor.
+
+but...I think I'm not implementing "prev" correctly. I need to take a look at it again.

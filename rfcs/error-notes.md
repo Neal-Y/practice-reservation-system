@@ -454,3 +454,31 @@ but in practice, if u need to keep the code private, u can try use the git repo 
 - 您想監視或獲取Reservations的實時流。
 - 伺服器可能會在不同的時間點連續發送多個預訂。
 - 在這種情境下，伺服器會連續地、一次發送一個預訂。每個預訂都是獨立的消息，可以立即被客戶端處理。不需要等待整個列表。
+
+## ERROR： I hadn't properly handled the 'cleanup' of the database.
+### Describe:
+這個問題是在描述我在進行grpc_service測試完畢後，由於我使用的是我自己的`TestConfig`但我在生成模擬real world的資料庫後，由於測試有問題導致沒有正確的處理資料庫的'cleanup'。
+
+## Error Analysis
+
+這就導致我的資料庫有越來越多因為每跑一次測試所生成的database，這樣不但會出現資料庫效能變差，同時也會增加系統負擔。
+
+## Solution
+
+首先我使用`shell script`刪除所有格式為`test_service_{uuid}`的database，這樣的腳本可以幫助我節省不少時間在`drop database`，同時也讓我學習到shell原來這麼難寫ＸＤ，那至於我要怎麼治本，解決測試完畢後的資料庫'cleanup'我也還在摸索怎樣的方式會比較得當，不過我有意識到這問題，我將不會再讓每run一次測試就多新增資料庫而沒有刪除的事情發生。
+
+## ERROR： Can't use Drop trait to deal with async operations.
+### Describe:
+```rust
+--- STDERR:              reservation-service tests::service_reserve_tests::tests::local_test_rpc_reserve_server_should_work ---
+thread 'tests::service_reserve_tests::tests::local_test_rpc_reserve_server_should_work' panicked at 'Cannot start a runtime from within a runtime. This happens because a function (like `block_on`) attempted to block the current thread while the thread is being used to drive asynchronous tasks.', /Users/shin/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.32.0/src/runtime/scheduler/multi_thread/mod.rs:86:9
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+```
+
+## Error Analysis
+
+這個錯誤在於`Cannot start a runtime from within a runtime`，這代表我嘗試在一個異步 (async) 環境中創建一個新的異步執行時（runtime），同時`Drop trait`本身是`sync`的trait，所以如果我想在async中的測試時，將我自動生成資料庫在步不調用cleanup()的情況下，讓他自動Drop掉我的資料庫，這樣的操作是不被允許的。
+
+## Solution
+
+因此解決方式，就是還是我`手動`設定`cleanup()`這個function，其實也可以使用`shell script`去定期清理我測試生成得資料庫，這樣我可以專注在開發測試，而不用理那些`cleanup()`的問題，不過我個人覺得是有點本末倒置了。
