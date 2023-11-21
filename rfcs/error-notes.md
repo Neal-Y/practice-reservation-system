@@ -482,3 +482,33 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 ## Solution
 
 因此解決方式，就是還是我`手動`設定`cleanup()`這個function，其實也可以使用`shell script`去定期清理我測試生成得資料庫，這樣我可以專注在開發測試，而不用理那些`cleanup()`的問題，不過我個人覺得是有點本末倒置了。
+
+## ERROR：two integration tests are using the same server lead to crush.
+### Describe:
+
+**一開始是這個問題**
+
+```rust
+--- STDERR:              reservation-service tests::grpc_service::test::internet_grpc_server_should_work ---
+thread 'tests::grpc_service::test::internet_grpc_server_should_work' panicked at 'called `Result::unwrap()` on an `Err` value: transport error
+
+Caused by:
+    0: error creating server listener: Address already in use (os error 48)
+    1: Address already in use (os error 48)', service/src/tests/grpc_service.rs:139:42
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+thread 'tests::grpc_service::test::internet_grpc_server_should_work' panicked at 'called `Result::unwrap()` on an `Err` value: Status { code: Unknown, message: "transport error", source: Some(tonic::transport::Error(Transport, hyper::Error(Io, Custom { kind: BrokenPipe, error: "stream closed because of a broken pipe" }))) }', service/src/tests/grpc_service.rs:45:14
+```
+
+## Error Analysis
+
+問題出在當我在線程中啟動一個`server`讓我可以在測試中使用，但是當我在第二個測試中也使用了同樣的server，這時候就會出現`Address already in use`的錯誤，這是因為我在第一個測試中啟動了server，但是在第二個測試中也啟動了相同的server，這時候就會出現錯誤。
+
+**後來問題**
+
+但是後來發現我每個測試都是獨立的，因為每一個資料庫的資料料不一樣不能啟用同一個server。
+
+## Solution
+
+    所以假設我今天要使用`setup`、`teardown`這樣的測試工具，我只需要啟動一次供所有測試使用的話，供我選擇的有`lazy static`以及`std::sync::Once`去斟酌使用。
+
+但如果是我今天要使用`integration test`的話，我就必須要在每個測試中都啟動一個server，這樣才能保證每個測試都是獨立的。

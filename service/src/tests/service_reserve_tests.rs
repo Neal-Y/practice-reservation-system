@@ -1,6 +1,6 @@
 #[cfg(test)]
-mod tests {
-    use crate::{tests::test_utils::*, RsvpService};
+mod test {
+    use crate::{tests::test_utils::TestConfig, RsvpService};
     use abi::{reservation_service_server::ReservationService, Reservation, ReserveRequest};
 
     #[tokio::test]
