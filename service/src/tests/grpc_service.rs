@@ -10,7 +10,8 @@ mod test {
 
     #[tokio::test]
     async fn internet_grpc_server_should_work() {
-        let (config, mut client) = create_mock_database_and_test_connection().await;
+        let (config, mut client) =
+            create_mock_database_and_start_server_with_diff_port(50000).await;
 
         // rsvp data
         let mut rsvp = Reservation::new_pending(
@@ -49,9 +50,94 @@ mod test {
             response.reservation.unwrap().status,
             ReservationStatus::Confirmed as i32
         );
+        config.cleanup().await;
+    }
 
+    #[tokio::test]
+    async fn grpc_filter_should_work() {
+        let (config, mut client) =
+            create_mock_database_and_start_server_with_diff_port(50001).await;
+
+        make_reservations(&mut client, 100).await;
+
+        // filter by user
+        let filter = FilterByIdBuilder::default()
+            .user_id("yang")
+            .status(abi::ReservationStatus::Pending as i32)
+            .build()
+            .unwrap();
+
+        let FilterResponse {
+            pager,
+            reservations,
+        } = client
+            .filter(FilterRequest::new(filter.clone()))
+            .await
+            .unwrap()
+            .into_inner();
+
+        let pager = pager.unwrap();
+
+        // we already had an item, cuz rsvp_loop had reserved 100 items that means we have 10 page and other reserve new.
+        assert_eq!(pager.next, filter.page_size);
+        assert_eq!(pager.prev, -1);
+        // assert_eq!(pager.total, 100); //TODO: not implemented yet
+        assert_eq!(reservations.len(), filter.page_size as usize);
+
+        let mut next_filter = filter.clone();
+        next_filter.cursor = pager.clone().next;
+        // then try get next page
+        // let FilterResponse {
+        //     pager,
+        //     reservations,
+        // } = client
+        //     .filter(FilterRequest::new(next_filter.clone()))
+        //     .await
+        //     .unwrap()
+        //     .into_inner();
+
+        // assert_eq!(
+        //     pager.clone().unwrap().next,
+        //     next_filter.clone().cursor + filter.page_size
+        // );
+        // assert_eq!(pager.unwrap().prev, next_filter.cursor - 1);
+        // assert_eq!(reservations.len(), filter.clone().page_size as usize);
+
+        config.cleanup().await;
+    }
+
+    async fn create_mock_database_and_start_server_with_diff_port(
+        port: u16,
+    ) -> (
+        TestConfig,
+        ReservationServiceClient<tonic::transport::Channel>,
+    ) {
+        // pre-work
+        let mut config = TestConfig::new().await;
+        config.initialize().await;
+        config.set_diff_port(port);
+        let con = config.config.clone();
+
+        // start the server
+        tokio::spawn(async move {
+            start_the_server(&con).await.unwrap();
+        });
+        time::sleep(Duration::from_millis(100)).await;
+
+        // let client to make connections with server
+        let client = ReservationServiceClient::connect(config.config.server.url(false))
+            .await
+            .unwrap();
+
+        (config, client)
+    }
+
+    async fn make_reservations(
+        client: &mut ReservationServiceClient<tonic::transport::Channel>,
+        times: u32,
+    ) {
         // then we make 100 reservation without conflict
-        for i in 0..100 {
+        for i in 0..times {
             let mut rsvp_loop = Reservation::new_pending(
                 "yang",
                 format!("president-room-{}", i),
@@ -72,81 +158,5 @@ mod test {
 
             assert_eq!(response, rsvp_loop);
         }
-        config.cleanup().await;
-    }
-
-    // #[tokio::test]
-    // async fn grpc_filter_should_work() {
-    //     let (config, mut client) = create_mock_database_and_test_connection().await;
-    //     // filter by user
-    //     let filter = FilterByIdBuilder::default()
-    //         .user_id("yang")
-    //         .status(abi::ReservationStatus::Pending as i32)
-    //         .build()
-    //         .unwrap();
-
-    //     let FilterResponse {
-    //         pager,
-    //         reservations,
-    //     } = client
-    //         .filter(FilterRequest::new(filter.clone()))
-    //         .await
-    //         .unwrap()
-    //         .into_inner();
-
-    //     let pager = pager.unwrap();
-
-    //     // we already had an item, cuz rsvp_loop had reserved 100 items that means we have 10 page and other reserve new.
-    //     assert_eq!(pager.next, filter.page_size + 1 + 1);
-    //     assert_eq!(pager.prev, -1);
-    //     // assert_eq!(pager.total, 100); //TODO: not implemented yet
-    //     println!("response: {:?}", reservations.len());
-    //     assert_eq!(reservations.len(), filter.page_size as usize);
-
-    //     let mut next_filter = filter.clone();
-    //     next_filter.cursor = pager.clone().next;
-    //     // then try get next page
-    //     let FilterResponse {
-    //         pager,
-    //         reservations,
-    //     } = client
-    //         .filter(FilterRequest::new(next_filter.clone()))
-    //         .await
-    //         .unwrap()
-    //         .into_inner();
-
-    //     assert_eq!(
-    //         pager.clone().unwrap().next,
-    //         next_filter.clone().cursor + filter.page_size
-    //     );
-    //     assert_eq!(pager.unwrap().prev, next_filter.cursor - 1);
-    //     assert_eq!(reservations.len(), filter.clone().page_size as usize);
-
-    //     config.cleanup().await;
-    // }
-
-    async fn create_mock_database_and_test_connection() -> (
-        TestConfig,
-        ReservationServiceClient<tonic::transport::Channel>,
-    ) {
-        // pre-work
-        let config = TestConfig::new().await;
-        config.initialize().await;
-        let con = config.config.clone();
-
-        // start the server
-        tokio::spawn(async move {
-            start_the_server(&con).await.unwrap();
-        });
-        time::sleep(Duration::from_millis(100)).await;
-
-        // let client to make connections with server
-        let client = ReservationServiceClient::connect(config.config.server.url(false))
-            .await
-            .unwrap();
-
-        (config, client)
     }
 }
-
-// TODO:每個測試都是獨立的所以不能使用setup去啟動一次伺服器而已思考一下要怎麼整合

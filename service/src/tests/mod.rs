@@ -1,15 +1,14 @@
-// mod grpc_service;
+mod grpc_service;
 mod service_reserve_tests;
 
 #[cfg(test)]
 mod test_utils {
     use abi::Config;
     use sqlx::{Connection, Executor, PgConnection};
-    use std::sync::Arc;
     use uuid::Uuid;
 
     pub struct TestConfig {
-        pub config: Arc<Config>,
+        pub config: Config,
     }
 
     impl TestConfig {
@@ -20,9 +19,7 @@ mod test_utils {
             let dbname = format!("test_service_{}", uuid);
             config.db.dbname = dbname;
 
-            Self {
-                config: Arc::new(config),
-            }
+            Self { config }
         }
 
         // make test database same as real database
@@ -63,6 +60,10 @@ mod test_utils {
             conn.execute(format!(r#"DROP DATABASE "{}""#, dbname).as_str())
                 .await
                 .expect("Error while querying the drop database");
+        }
+
+        pub fn set_diff_port(&mut self, port: u16) {
+            self.config.server.port = port;
         }
     }
 }
