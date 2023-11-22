@@ -65,5 +65,18 @@ mod test_utils {
         pub fn set_diff_port(&mut self, port: u16) {
             self.config.server.port = port;
         }
+
+        // fn find_unused_port() -> u16 {
+        //     (50000..60000)
+        //         .find(|port| port_is_free(*port))
+        //         .unwrap_or(50000)
+        // }
+
+        // fn port_is_free(port: u16) -> bool {
+        //     match std::net::TcpListener::bind(("127.0.0.1", port)) {
+        //         Ok(_) => true,
+        //         Err(_) => false,
+        //     }
+        // }
     }
 }
