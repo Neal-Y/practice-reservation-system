@@ -106,6 +106,16 @@ mod test {
         config.cleanup().await;
     }
 
+    // #[tokio::test]
+    // async fn grpc_query_should_work() {
+    //     let (config, mut client) =
+    //         create_mock_database_and_start_server_with_diff_port(50001).await;
+
+    //     config.cleanup().await;
+    // }
+
+    //? 同伺服器，不同port
+
     async fn create_mock_database_and_start_server_with_diff_port(
         port: u16,
     ) -> (
@@ -116,6 +126,7 @@ mod test {
         let mut config = TestConfig::new().await;
         config.initialize().await;
         config.set_diff_port(port);
+
         let con = config.config.clone();
 
         // start the server
