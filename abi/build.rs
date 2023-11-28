@@ -7,17 +7,9 @@ fn main() {
         .out_dir("src/pb")
         .with_sql_type(&["reservation.ReservationStatus"])
         .with_builder(&["reservation.ReservationQuery", "reservation.FilterById"])
-        .with_option_builder("reservation.ReservationQuery", &["start", "end"])
         .with_into_builder(
             "reservation.ReservationQuery",
-            &[
-                "user_id",
-                "resource_id",
-                "status",
-                "page",
-                "page_size",
-                "desc",
-            ],
+            &["user_id", "resource_id", "status", "start", "end", "desc"],
         )
         .with_into_builder(
             "reservation.FilterById",
@@ -59,7 +51,6 @@ unwrap() 方法則是在編譯失敗時讓程式 panic，這在 main 函數中�
 trait BuilderUtils {
     fn with_sql_type(self, path: &[&str]) -> Self;
     fn with_builder(self, path: &[&str]) -> Self;
-    fn with_option_builder(self, path: &str, fields: &[&str]) -> Self;
     fn with_into_builder(self, path: &str, fields: &[&str]) -> Self;
 }
 
@@ -72,15 +63,6 @@ impl BuilderUtils for Builder {
     fn with_builder(self, path: &[&str]) -> Self {
         path.iter().fold(self, |acc, path| {
             acc.type_attribute(path, "#[derive(derive_builder::Builder)]")
-        })
-    }
-    // options for start and end
-    fn with_option_builder(self, path: &str, fields: &[&str]) -> Self {
-        fields.iter().fold(self, |acc, field| {
-            acc.field_attribute(
-                format!("{}.{}", path, field),
-                "#[builder(setter(into, strip_option))]",
-            )
         })
     }
     // turn into lots of fields

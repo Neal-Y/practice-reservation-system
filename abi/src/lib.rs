@@ -8,6 +8,7 @@ pub use config::*;
 pub use error::{Error, ReservationConflict, ReservationConflictInfo, ReservationWindow};
 pub use pb::*;
 pub use types::*;
+pub use utils::*;
 
 pub type ReservationId = i64;
 pub type ResourceId = String;

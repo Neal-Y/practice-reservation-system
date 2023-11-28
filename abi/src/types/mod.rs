@@ -29,8 +29,8 @@ pub fn convert_timestamp_into_timespan_pgrange(
     start: Option<&Timestamp>,
     end: Option<&Timestamp>,
 ) -> PgRange<DateTime<Utc>> {
-    let start = convert_time_to_utc(start.unwrap().clone());
-    let end = convert_time_to_utc(end.unwrap().clone());
+    let start = convert_time_to_utc(start.as_ref().unwrap());
+    let end = convert_time_to_utc(end.as_ref().unwrap());
     PgRange {
         start: std::ops::Bound::Included(start),
         end: std::ops::Bound::Excluded(end),
@@ -97,11 +97,11 @@ mod tests {
         let range = convert_timestamp_into_timespan_pgrange(Some(&start), Some(&end));
         assert_eq!(
             range.start,
-            std::ops::Bound::Included(convert_time_to_utc(start))
+            std::ops::Bound::Included(convert_time_to_utc(&start))
         );
         assert_eq!(
             range.end,
-            std::ops::Bound::Excluded(convert_time_to_utc(end))
+            std::ops::Bound::Excluded(convert_time_to_utc(&end))
         );
     }
 }

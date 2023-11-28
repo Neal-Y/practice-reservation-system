@@ -1,5 +1,5 @@
 use crate::Rsvp;
-use abi::{DbConfig, Error, FilterPager, ReservationId, Validator};
+use abi::{convert_time_to_utc, DbConfig, Error, FilterPager, ReservationId, Validator};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
@@ -106,7 +106,8 @@ impl Rsvp for ReservationManager {
     async fn query(&self, query: abi::ReservationQuery) -> ReservationReceiver {
         let user_id = string_to_option(&query.user_id);
         let resource_id = string_to_option(&query.resource_id);
-        let range = query.get_timespan();
+        let start = query.start.map(|ts| convert_time_to_utc(&ts));
+        let end = query.end.map(|ts| convert_time_to_utc(&ts));
         let status = abi::ReservationStatus::from_i32(query.status)
             .unwrap_or(abi::ReservationStatus::Pending);
         let pool = self.pool.clone();
@@ -114,15 +115,14 @@ impl Rsvp for ReservationManager {
 
         tokio::spawn(async move {
             let mut rsvps = sqlx::query_as(
-                "SELECT * FROM rsvp.query($1, $2, $3, $4::rsvp.reservation_status, $5, $6, $7)",
+                "SELECT * FROM rsvp.query($1, $2, $3, $4, $5::rsvp.reservation_status, $6)",
             )
             .bind(user_id)
             .bind(resource_id)
-            .bind(range)
+            .bind(start)
+            .bind(end)
             .bind(status.to_string())
-            .bind(query.page)
             .bind(query.desc)
-            .bind(query.page_size)
             .fetch_many(&pool);
             while let Some(ret) = rsvps.next().await {
                 match ret {

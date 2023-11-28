@@ -1,6 +1,6 @@
 use crate::{
-    CancelRequest, ConfirmRequest, FilterById, FilterRequest, GetRequest, Reservation,
-    ReserveRequest,
+    CancelRequest, ConfirmRequest, FilterById, FilterRequest, GetRequest, QueryRequest,
+    Reservation, ReservationQuery, ReserveRequest,
 };
 
 // 這邊使用macro來簡化程式碼，可以看到其實macro就像是函數一樣簡化重複性的函數，有點像是函數中的prototype(原型)
@@ -28,9 +28,12 @@ macro_rules! impl_new {
     };
 }
 
+// TODO: UninitializedField
+
 impl_new!(single ReserveRequest, reservation, Reservation);
 impl_new!(ConfirmRequest, GetRequest, CancelRequest);
 impl_new!(single FilterRequest, query, FilterById);
+impl_new!(single QueryRequest, query, ReservationQuery);
 
 // TODO: 這邊的macro有點複雜，需要再研究一下
 

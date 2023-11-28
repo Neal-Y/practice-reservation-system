@@ -3,10 +3,12 @@ mod test {
     use crate::{start_the_server, tests::test_utils::TestConfig};
     use abi::{
         reservation_service_client::ReservationServiceClient, ConfirmRequest, FilterByIdBuilder,
-        FilterRequest, FilterResponse, Reservation, ReservationStatus, ReserveRequest,
+        FilterRequest, FilterResponse, QueryRequest, Reservation, ReservationQueryBuilder,
+        ReservationStatus, ReserveRequest,
     };
     use std::time::Duration;
     use tokio::time;
+    use tokio_stream::StreamExt;
 
     #[tokio::test]
     async fn internet_grpc_server_should_work() {
@@ -106,13 +108,30 @@ mod test {
         config.cleanup().await;
     }
 
-    // #[tokio::test]
-    // async fn grpc_query_should_work() {
-    //     let (config, mut client) =
-    //         create_mock_database_and_start_server_with_diff_port(50001).await;
+    #[tokio::test]
+    async fn grpc_query_should_work() {
+        let (config, mut client) =
+            create_mock_database_and_start_server_with_diff_port(50002).await;
 
-    //     config.cleanup().await;
-    // }
+        make_reservations(&mut client, 100).await;
+
+        let query = ReservationQueryBuilder::default()
+            .user_id("alice")
+            .build()
+            .unwrap();
+        // query for all reservations
+        let mut ret = client
+            .query(QueryRequest::new(query))
+            .await
+            .unwrap()
+            .into_inner();
+
+        while let Some(Ok(rsvp)) = ret.next().await {
+            assert_eq!(rsvp.user_id, "alice");
+        }
+
+        config.cleanup().await;
+    }
 
     //? 同伺服器，不同port
 
