@@ -116,9 +116,10 @@ mod test {
         make_reservations(&mut client, 100).await;
 
         let query = ReservationQueryBuilder::default()
-            .user_id("alice")
+            .user_id("yang")
             .build()
             .unwrap();
+
         // query for all reservations
         let mut ret = client
             .query(QueryRequest::new(query))
