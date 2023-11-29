@@ -6,6 +6,7 @@ mod test {
         FilterRequest, FilterResponse, QueryRequest, Reservation, ReservationQueryBuilder,
         ReservationStatus, ReserveRequest,
     };
+
     use std::time::Duration;
     use tokio::time;
     use tokio_stream::StreamExt;
@@ -121,13 +122,16 @@ mod test {
             .unwrap();
 
         // query for all reservations
-        let mut ret = client
+        let mut response = client
             .query(QueryRequest::new(query))
             .await
             .unwrap()
             .into_inner();
 
-        while let Some(Ok(rsvp)) = ret.next().await {
+        println!("{:?}", response);
+
+        while let Some(Ok(rsvp)) = response.next().await {
+            println!("{:?}", rsvp);
             assert_eq!(rsvp.user_id, "alice");
         }
 
