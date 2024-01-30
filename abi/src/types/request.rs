@@ -28,8 +28,6 @@ macro_rules! impl_new {
     };
 }
 
-// TODO: UninitializedField
-
 impl_new!(single ReserveRequest, reservation, Reservation);
 impl_new!(ConfirmRequest, GetRequest, CancelRequest);
 impl_new!(single FilterRequest, query, FilterById);

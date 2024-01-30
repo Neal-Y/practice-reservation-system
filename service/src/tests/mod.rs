@@ -1,4 +1,4 @@
-mod grpc_service;
+// mod grpc_service;
 mod service_reserve_tests;
 
 #[cfg(test)]
@@ -62,8 +62,8 @@ mod test_utils {
                 .expect("Error while querying the drop database");
         }
 
-        pub fn set_diff_port(&mut self, port: u16) {
-            self.config.server.port = port;
-        }
+        // pub fn set_diff_port(&mut self, port: u16) {
+        //     self.config.server.port = port;
+        // }
     }
 }

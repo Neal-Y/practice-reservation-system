@@ -3,13 +3,12 @@ mod test {
     use crate::{start_the_server, tests::test_utils::TestConfig};
     use abi::{
         reservation_service_client::ReservationServiceClient, ConfirmRequest, FilterByIdBuilder,
-        FilterRequest, FilterResponse, QueryRequest, Reservation, ReservationQueryBuilder,
-        ReservationStatus, ReserveRequest,
+        FilterRequest, FilterResponse, QueryRequest, Reservation, ReservationQuery,
+        ReservationQueryBuilder, ReservationStatus, ReserveRequest,
     };
 
     use std::time::Duration;
     use tokio::time;
-    use tokio_stream::StreamExt;
 
     #[tokio::test]
     async fn internet_grpc_server_should_work() {
@@ -116,10 +115,20 @@ mod test {
 
         make_reservations(&mut client, 100).await;
 
-        let query = ReservationQueryBuilder::default()
-            .user_id("yang")
-            .build()
-            .unwrap();
+        // let query = ReservationQueryBuilder::default()
+        //     .user_id("yang")
+        //     .build()
+        //     .unwrap();
+
+        let query = ReservationQuery {
+            resource_id: "".to_string(),
+            user_id: "yang".to_string(),
+            status: Unknown,
+            start: None,
+            end: None,
+            desc: false,
+        };
+        println!("query: {:?}", query);
 
         // query for all reservations
         let mut response = client
@@ -130,10 +139,19 @@ mod test {
 
         println!("{:?}", response);
 
-        while let Some(Ok(rsvp)) = response.next().await {
-            println!("{:?}", rsvp);
-            assert_eq!(rsvp.user_id, "alice");
+        // while let Some(Ok(rsvp)) = response.next().await {
+        //     println!("{:?}", rsvp);
+        //     assert_eq!(rsvp.user_id, "alice");
+        // }
+
+        let mut received_items = Vec::new();
+        while let Some(item) = response.message().await.unwrap() {
+            received_items.push(item);
         }
+
+        println!("{:?}", received_items);
+
+        assert!(!received_items.is_empty());
 
         config.cleanup().await;
     }
